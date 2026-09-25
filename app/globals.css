@@ -15,11 +15,18 @@
     --color-sidebar-primary: var(--sidebar-primary);
     --color-sidebar-foreground: var(--sidebar-foreground);
     --color-sidebar: var(--sidebar);
+    --color-chart-8: var(--chart-8);
+    --color-chart-7: var(--chart-7);
+    --color-chart-6: var(--chart-6);
     --color-chart-5: var(--chart-5);
     --color-chart-4: var(--chart-4);
     --color-chart-3: var(--chart-3);
     --color-chart-2: var(--chart-2);
     --color-chart-1: var(--chart-1);
+    --color-matrix-pos-1: var(--matrix-pos-1);
+    --color-matrix-pos-2: var(--matrix-pos-2);
+    --color-matrix-neg-1: var(--matrix-neg-1);
+    --color-matrix-neg-2: var(--matrix-neg-2);
     --color-ring: var(--ring);
     --color-input: var(--input);
     --color-border: var(--border);
@@ -66,11 +73,29 @@
     --border: oklch(0.922 0 0);
     --input: oklch(0.922 0 0);
     --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.855 0.138 181.071);
-    --chart-2: oklch(0.704 0.14 182.503);
-    --chart-3: oklch(0.6 0.118 184.704);
-    --chart-4: oklch(0.511 0.096 186.391);
-    --chart-5: oklch(0.437 0.078 188.216);
+
+    /* Categorical series palette — fixed order, never cycled. Validated against the
+       light card surface (#ffffff) by `npm run validate:palette`. Values are hex so
+       the CSS holds exactly the strings CI checks — no conversion drift. See PLAN §11.1. */
+    --chart-1: #2a78d6; /* blue */
+    --chart-2: #eb6834; /* orange */
+    --chart-3: #1baf7a; /* aqua */
+    --chart-4: #eda100; /* yellow */
+    --chart-5: #e87ba4; /* magenta */
+    --chart-6: #008300; /* green */
+    --chart-7: #4a3aa7; /* violet */
+    --chart-8: #e34948; /* red */
+
+    /* Matrix cell tints — diverging, blue (above baseline) <-> red (below baseline),
+       with the card surface itself as the neutral midpoint. Two levels only: below
+       `MATRIX_DEADBAND` a cell is not tinted at all. A third, fainter level was
+       measured and dropped — text readability caps the chroma, so a faint tint cannot
+       carry an above/below distinction (ΔE 8.7 vs. the 15 floor). See PLAN §11.3. */
+    --matrix-pos-1: #91c1ff;
+    --matrix-pos-2: #62a6ff;
+    --matrix-neg-1: #ffa098;
+    --matrix-neg-2: #ff716b;
+
     --radius: 0.625rem;
     --sidebar: oklch(0.985 0 0);
     --sidebar-foreground: oklch(0.145 0 0);
@@ -101,11 +126,24 @@
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 15%);
     --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.855 0.138 181.071);
-    --chart-2: oklch(0.704 0.14 182.503);
-    --chart-3: oklch(0.6 0.118 184.704);
-    --chart-4: oklch(0.511 0.096 186.391);
-    --chart-5: oklch(0.437 0.078 188.216);
+
+    /* Same eight hues, RE-STEPPED for the dark card surface (#171717) — not an
+       automatic flip. The previous tokens were identical in both modes, which is
+       why dark failed the lightness band on 3 of 5 slots. See PLAN §11.1. */
+    --chart-1: #3987e5; /* blue */
+    --chart-2: #d95926; /* orange */
+    --chart-3: #199e70; /* aqua */
+    --chart-4: #c98500; /* yellow */
+    --chart-5: #d55181; /* magenta */
+    --chart-6: #008300; /* green */
+    --chart-7: #9085e9; /* violet */
+    --chart-8: #e66767; /* red */
+
+    --matrix-pos-1: #1d467b;
+    --matrix-pos-2: #215da6;
+    --matrix-neg-1: #732c2a;
+    --matrix-neg-2: #9a3836;
+
     --sidebar: oklch(0.205 0 0);
     --sidebar-foreground: oklch(0.985 0 0);
     --sidebar-primary: oklch(0.488 0.243 264.376);

@@ -12,6 +12,14 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendored third-party: the palette validator from the dataviz reference
+    // implementation. Kept byte-identical apart from added `export` keywords so it
+    // can be re-synced upstream; linting it would invite local edits.
+    "scripts/lib/**",
+    // Build/audit output.
+    "coverage/**",
+    "playwright-report/**",
+    ".lighthouseci/**",
   ]),
 ]);
 

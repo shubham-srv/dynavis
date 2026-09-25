@@ -1,0 +1,15 @@
+# Normalise line endings across the personal and work machines.
+* text=auto eol=lf
+
+# Binary assets must never be normalised.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.pdf binary
+
+# Generated; collapse in review.
+package-lock.json linguist-generated=true -diff

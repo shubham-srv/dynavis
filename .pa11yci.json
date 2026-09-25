@@ -1,0 +1,13 @@
+{
+  "defaults": {
+    "standard": "WCAG2AA",
+    "timeout": 30000,
+    "wait": 500,
+    "chromeLaunchConfig": { "args": ["--no-sandbox", "--disable-dev-shm-usage"] },
+    "hideElements": "#__next-build-watcher, nextjs-portal",
+    "runners": ["axe", "htmlcs"]
+  },
+  "urls": [
+    "http://localhost:3000/"
+  ]
+}

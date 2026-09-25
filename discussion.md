@@ -118,3 +118,136 @@ Don't chase coverage through chart internals. Push logic *out* of components int
 1. **Who's the actual user?** Executives glancing on a phone and analysts drilling on desktop want genuinely different products. If it's both, "mobile = curated summary, desktop = exploration" is a legitimate answer and a much cheaper one than full parity.
 2. **How real is the mobile requirement?** "Viewable on mobile" in an SOW sometimes means "doesn't break." If someone's committed to full analytical parity on a 375px screen, renegotiate that now, not in UAT.
 3. **How many KPIs is the picker choosing from?** 12 is a design problem. 60 is an information architecture problem and needs discovery before any chart code gets written.
+
+---
+
+## Round 2 — 2026-09-25: the domain arrives
+
+### Context added
+
+Target: a **multinational school organisation**, at strategy level. Needs a matrix view of school × KPI, a
+homepage of KPI cards over week / month / year (enrolment, active students, teachers), **drill-down to
+granular level with breadcrumbs**, and multiple roles — super admin, regional manager, principal.
+Strategy revolves around three pillars: **increasing profitable revenue, improving operational efficiency,
+improving academic outcomes.**
+
+### What this changed
+
+**Drill-down moved from out-of-scope to the spine.** Round 1 listed cross-widget drill-through as
+explicitly out of scope. That was wrong for this product. The dashboard is not "a list of widgets" — it is
+*a list of widgets at a scope, for a period, for a role*. Those three values parameterise every data
+request in the app.
+
+**Three reframings did most of the work:**
+
+1. **The matrix is the navigator, not a widget.** A school × KPI matrix at group level with hundreds of
+   schools is unusable. But if the matrix always renders *the children of the current scope* — group→regions,
+   region→countries, country→schools — the row count stays bounded at every level, and clicking a row *is*
+   the drill-down. One component becomes the matrix view, the navigation, and the source of the breadcrumb
+   trail.
+
+2. **Role = a root scope plus a depth cap, not a permission list.** Super admin roots at the group,
+   regional manager at their region, principal at their school. Same code path, different root. Four
+   dashboards collapse into one. (Authorisation still enforced server-side — the client's scope parameter
+   is a request, not a grant.)
+
+3. **The three pillars are the information architecture.** A KPI that doesn't ladder to a pillar doesn't
+   go on the strategic dashboard. That is the "say no" mechanism Round 1 said the project needed, and it
+   comes from the client's own strategy rather than from us — far easier to sell.
+
+**Scope state belongs in the URL.** Path segments for scope, query string for period and filters. Deep
+links, correct back button, shareable views, and every drill flow becomes testable by navigating to a URL.
+
+### Domain traps surfaced
+
+These are specific to a *multinational school* group and are cheap now, expensive later:
+
+- **The academic calendar is not the calendar.** Schools in both hemispheres means academic years starting
+  in September *and* January. Comparisons must default to the comparable prior *academic* period —
+  week-over-week enrolment deltas will produce garbage, and trust won't recover. Term-time-only metrics
+  have legitimate gaps: attendance during summer break is *not applicable*, not 0%.
+- **Currency.** Constant currency by default, or a 6% FX move reads as 6% growth and someone decides on it.
+- **Missing data is not zero.** A school opened this year has no prior-year comparison; some countries
+  don't report some KPIs. Nulls must never enter an average.
+- **Matrix cell colour must respect KPI direction.** Higher-is-better, lower-is-better, and *band*
+  (student:teacher ratio — both directions are bad). Colouring high cost-per-student green is the single
+  most likely bug in the component.
+- **Student-level drill-down is a legal boundary, not a feature flag.** The POC stops at class level.
+
+### Proposed north star
+
+**Re-enrolment rate.** It sits at the intersection of all three pillars — academic outcomes drive
+retention, retention drives revenue without acquisition cost — and it is leading rather than lagging.
+
+Full detail in [PLAN.md](PLAN.md) v2.
+
+---
+
+## Round 3 — 2026-09-25: answers, and the pattern in them
+
+### Answers given
+
+1. **Targets:** unknown. *"If we can't show targets, we can at least show trends — delta with numbers."*
+2. **Drill-down:** hierarchical, confirmed. *"I see a comparison of different schools for a complex KPI.
+   Then we click on that school to view further breakdown of that KPI. Breadcrumbs would show
+   `comparison > particular selected school`."*
+3. **Principals seeing other schools:** unsure. *"Perhaps not a detailed breakdown but maybe some kind of
+   ranking. Perhaps it increases competition among schools?"*
+
+### The pattern
+
+Two of three answers are "we don't know yet." Neither needs to block anything — **make the unknown a
+parameter rather than a decision.** Both became configuration:
+
+**Targets → polymorphic baseline.** The cell renderer reads `vsBaseline` and never knows where it came
+from. A resolver falls through `target → prior period → peer median → none`, per KPI. If the answer comes
+back "no targets anywhere," a default changes and nothing else does.
+
+Better still, the three baselines aren't degraded substitutes — they answer different questions:
+
+| Baseline | Question |
+|---|---|
+| Target | *Who is failing?* — absolute performance |
+| Prior period | *Who is moving?* — momentum |
+| Peer median | *Who is behind comparable schools?* — relative |
+
+So it becomes a control in the matrix header — **Compare against: Target · Last year · Peer median** —
+and the POC turns into a discovery instrument. Demo all three, see which one the client argues about.
+That argument is worth more than the answer we'd have guessed.
+
+**Peer visibility → role setting**, defaulting to `anonymised-band`: *"7th of 22 comparable schools, band
+median 82%."* Keeps the motivational signal, removes naming-and-shaming and most of the gaming incentive —
+you can't target a rival you can't identify.
+
+On the "increases competition" hypothesis: it does, but competition improves *the measured number*, which
+isn't always the outcome. Schools are a well-documented case — teaching to the test, easier qualification
+entries, attendance-code gaming. Two mitigations worth raising: **rank on progress rather than attainment**
+(ranking raw exam results mostly ranks intake quality), and **make the peer band defensible** — a
+300-student school against a 2,000-student flagship gets dismissed as unfair, and a dashboard dismissed
+once by the people it measures doesn't recover.
+
+### What the drill-down example actually revealed
+
+The stated example is a drill with **one KPI held constant**, which is a different gesture from re-scoping
+the whole dashboard. But they unify: the focus view is the matrix with one column and a real chart. Same
+scope mechanics, same breadcrumb builder, same drill handler, cache key plus a KPI id. The headline
+interaction turned out to need almost no new machinery.
+
+The word doing the work was **"complex KPI."** A composite metric — contribution margin, cost per student,
+value-added — has a second drill that is usually *more* useful than the sub-unit list: **what made this
+number.** A regional manager seeing margin drop wants the cost line that moved; they get to the school list
+second. So the focus view carries three breakdown axes — **By location**, **By component** (waterfall),
+**Over time** — with the default declared per KPI.
+
+And the guardrail: curriculum, cohort, subject and gender are *not* levels of the org tree. They are
+filters or breakdown axes, never scope segments. The day one becomes a scope segment, `parseScope` stops
+being total and the breadcrumb stops meaning "where am I."
+
+### One trap in "delta with numbers"
+
+A pass rate moving 80% → 85% is **+5 percentage points**, not +5%. Both framings are defensible, mixing
+them is not, and a numerate client catches it in the first five minutes of the demo. Hence `deltaFormat`
+on the envelope, `pp` suffixes, constant-currency money deltas, and a noise floor so a 3-student school
+doesn't report "+33pp."
+
+Full detail in [PLAN.md](PLAN.md) v3.

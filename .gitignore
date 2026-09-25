@@ -34,3 +34,13 @@ pnpm-debug.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# env: the example IS committed — it documents the fixtures/real-API switch
+!.env.example
+
+# test & audit output
+/playwright-report
+/test-results
+/blob-report
+/playwright/.cache
+/.lighthouseci
