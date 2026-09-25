@@ -603,7 +603,12 @@ breadcrumb stops meaning "where am I." This is the top risk in §19; the rule ab
 
 The ladder each widget type implements. This table is the acceptance criteria for Phase 3.
 
-| Widget | `micro` (<340px) | `compact` (340–560) | `standard` (560–900) | `expanded` (>900) |
+Thresholds are **336 / 560 / 896** (`VARIANT_MIN_WIDTH` in `lib/viz/variants.ts`). All three are
+multiples of the 8px measurement quantum (§15), which is load-bearing rather than tidy: measured widths are
+bucketed before they reach the table, so a threshold falling mid-bucket moves. At 340 a container measuring
+exactly 340px quantised to 336 and resolved one variant too narrow.
+
+| Widget | `micro` (<336px) | `compact` (336–560) | `standard` (560–896) | `expanded` (≥896) |
 |---|---|---|---|---|
 | KPI card | value + delta arrow | + sparkline | + sparkline + period label | + mini breakdown |
 | Trend (line/area) | headline value + delta, "View chart" | sparkline, no axes | 1–2 series, thinned ticks, no gridlines | full axes, legend, brush |
