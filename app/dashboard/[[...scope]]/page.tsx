@@ -1,13 +1,16 @@
-import { ChevronRight } from "lucide-react"
 import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 
 import { Breadcrumbs } from "@/components/scope/breadcrumbs"
+import { MatrixSection } from "@/components/scope/matrix-section"
+import { CURRENT_ACADEMIC_YEAR } from "@/lib/data/fixtures/org"
+import { buildMatrix } from "@/lib/matrix/build"
+import { DEFAULT_WIDGET_IDS, widgetById } from "@/lib/registry/registry"
 import { fixtureLookup } from "@/lib/data/fixtures/lookup"
 import { buildBreadcrumbs, scopeAnnouncement } from "@/lib/scope/breadcrumbs"
 import { levelByKey } from "@/lib/scope/levels"
-import { parseScopeSegments, scopeHref } from "@/lib/scope/path"
+import { parseScopeSegments } from "@/lib/scope/path"
 import { describeScope, resolveScope } from "@/lib/scope/resolve"
 import {
   canDrillFrom,
@@ -108,7 +111,7 @@ export default async function DashboardPage({
       {childLevel ? (
         <section
           aria-labelledby="children-heading"
-          className="flex flex-col gap-3"
+          className="flex min-w-0 flex-col gap-3"
         >
           <h2 id="children-heading" className="text-sm font-medium">
             {childLevel.pluralLabel}
@@ -118,31 +121,18 @@ export default async function DashboardPage({
           </h2>
 
           {/*
-            A placeholder for the matrix navigator (PLAN §8). It already does the one
-            thing that matters — rows are the children of the current scope, and a row
-            click drills — so scope navigation is exercised end to end before the matrix
-            lands in Phase 4.
+            The matrix IS the navigation (PLAN D15): rows are the children of this
+            scope, and a row click drills into it.
           */}
-          <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {node.children.map((child) => (
-              <li key={child.id}>
-                <Link
-                  href={`${scopeHref([...resolved.slice(1), { level: node.childLevel!, id: child.id, label: child.label }])}${
-                    query.role
-                      ? `?role=${encodeURIComponent(String(query.role))}`
-                      : ""
-                  }`}
-                  className="flex min-h-11 items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                >
-                  <span className="truncate">{child.label}</span>
-                  <ChevronRight
-                    aria-hidden
-                    className="size-4 shrink-0 text-muted-foreground"
-                  />
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <MatrixSection
+            matrix={buildMatrix({
+              scopeId: current.id,
+              kpiIds: DEFAULT_WIDGET_IDS.map((id) => widgetById(id).kpiId),
+              period: { kind: "academic-year", id: CURRENT_ACADEMIC_YEAR },
+            })}
+            scopeIds={ids}
+            roleParam={query.role ? String(query.role) : undefined}
+          />
         </section>
       ) : (
         <p className="text-sm text-muted-foreground">
@@ -201,7 +191,7 @@ function RoleSwitcher({
         {ROLES.map((role) => (
           <li key={role.id}>
             <Link
-              href={`${scopeHref(scopeIds.map((id) => ({ level: "", id, label: "" })))}?role=${role.id}`}
+              href={`/dashboard${scopeIds.length ? `/${scopeIds.join("/")}` : ""}?role=${role.id}`}
               aria-current={role.id === current.id ? "true" : undefined}
               className={
                 role.id === current.id

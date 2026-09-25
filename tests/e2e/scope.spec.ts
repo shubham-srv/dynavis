@@ -175,6 +175,16 @@ test.describe("accessibility", () => {
   ]) {
     test(`${path} has no axe violations`, async ({ page }) => {
       await page.goto(path)
+      // Wait for the matrix to measure itself and render. Auditing before the debounce
+      // elapses audits a skeleton, which is how an axe suite gives false confidence.
+      // Narrow viewports render the ranked list rather than a grid, and a leaf renders
+      // neither — wait for whichever this route and width produce.
+      await page
+        .getByRole("table")
+        .or(page.getByRole("combobox", { name: /ranked by/i }))
+        .or(page.getByText(/deepest level available/i))
+        .first()
+        .waitFor()
       const results = await new AxeBuilder({ page })
         .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
         .analyze()
@@ -195,11 +205,41 @@ test.describe("accessibility", () => {
     expect(overflows).toBe(false)
   })
 
-  test("is navigable to a school using the keyboard alone", async ({
+  test("drives the matrix grid with the keyboard alone", async ({
     page,
-  }) => {
+  }, info) => {
+    test.skip(
+      info.project.name === "mobile-375",
+      "narrow widths render a ranked list, not a grid"
+    )
+    // The matrix is a roving-tabindex grid: one tab stop, then arrow keys. Tabbing to
+    // every one of 30 cells would bury the rest of the page (PLAN §8.8).
+    await page.goto("/dashboard/emea/eg")
+    await page.getByRole("table").waitFor()
+
+    const firstRow = page.locator('[data-cell="0--1"]')
+    for (let i = 0; i < 30; i++) {
+      if (await firstRow.evaluate((node) => node === document.activeElement))
+        break
+      await page.keyboard.press("Tab")
+    }
+    await expect(firstRow).toBeFocused()
+
+    await page.keyboard.press("ArrowRight")
+    await page.keyboard.press("Enter")
+    await expect(page).toHaveURL(/\/dashboard\/emea\/eg\/sch-/)
+  })
+
+  test("keeps the ranked list plainly tabbable on a phone", async ({
+    page,
+  }, info) => {
+    test.skip(
+      info.project.name !== "mobile-375",
+      "the grid model applies at wider widths"
+    )
     await page.goto("/dashboard/emea/eg")
     const target = page.getByRole("link", { name: /New Cairo International/ })
+    await target.waitFor()
 
     for (let i = 0; i < 40; i++) {
       if (await target.evaluate((node) => node === document.activeElement))
@@ -207,7 +247,6 @@ test.describe("accessibility", () => {
       await page.keyboard.press("Tab")
     }
     await expect(target).toBeFocused()
-
     await page.keyboard.press("Enter")
     await expect(page).toHaveURL(/sch-eg-01$/)
   })
