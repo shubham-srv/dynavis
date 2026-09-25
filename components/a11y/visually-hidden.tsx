@@ -1,4 +1,4 @@
-import type { ElementType, ReactNode } from "react";
+import type { ElementType, ReactNode } from "react"
 
 /**
  * Present to assistive technology, absent from the page.
@@ -11,12 +11,12 @@ export function VisuallyHidden({
   children,
   as: Component = "span",
 }: {
-  children: ReactNode;
-  as?: ElementType;
+  children: ReactNode
+  as?: ElementType
 }) {
   return (
     <Component className="absolute h-px w-px overflow-hidden border-0 p-0 whitespace-nowrap [clip-path:inset(50%)] [clip:rect(0_0_0_0)]">
       {children}
     </Component>
-  );
+  )
 }

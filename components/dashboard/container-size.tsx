@@ -1,9 +1,9 @@
-"use client";
+"use client"
 
-import { createContext, type ReactNode, useContext, useMemo } from "react";
+import { createContext, type ReactNode, useContext, useMemo } from "react"
 
-import { useContainerSize } from "@/hooks/use-container-size";
-import { resolveVariant, type Variant } from "@/lib/viz/variants";
+import { useContainerSize } from "@/hooks/use-container-size"
+import { resolveVariant, type Variant } from "@/lib/viz/variants"
 
 /**
  * Container size as context.
@@ -15,25 +15,27 @@ import { resolveVariant, type Variant } from "@/lib/viz/variants";
  */
 
 export interface ContainerContextValue {
-  width: number;
-  height: number;
-  measured: boolean;
+  width: number
+  height: number
+  measured: boolean
 }
 
-const ContainerSizeContext = createContext<ContainerContextValue | null>(null);
+const ContainerSizeContext = createContext<ContainerContextValue | null>(null)
 
 export function useContainerWidth(): ContainerContextValue {
-  const value = useContext(ContainerSizeContext);
+  const value = useContext(ContainerSizeContext)
   if (!value) {
-    throw new Error("useContainerWidth must be used inside a <ContainerSizeProvider>");
+    throw new Error(
+      "useContainerWidth must be used inside a <ContainerSizeProvider>"
+    )
   }
-  return value;
+  return value
 }
 
 /** Resolve the variant for the current container, restricted to what a widget supports. */
 export function useVariant(supported: readonly Variant[]): Variant {
-  const { width } = useContainerWidth();
-  return useMemo(() => resolveVariant(width, supported), [width, supported]);
+  const { width } = useContainerWidth()
+  return useMemo(() => resolveVariant(width, supported), [width, supported])
 }
 
 /**
@@ -50,25 +52,27 @@ export function ContainerSizeProvider({
   className,
   debounceMs,
 }: {
-  children: ReactNode;
-  width?: number;
-  height?: number;
-  className?: string;
-  debounceMs?: number;
+  children: ReactNode
+  width?: number
+  height?: number
+  className?: string
+  debounceMs?: number
 }) {
-  const [ref, measured] = useContainerSize<HTMLDivElement>(debounceMs);
+  const [ref, measured] = useContainerSize<HTMLDivElement>(debounceMs)
 
   const value = useMemo<ContainerContextValue>(
     () =>
       width === undefined
         ? measured
         : { width, height: height ?? measured.height, measured: true },
-    [width, height, measured],
-  );
+    [width, height, measured]
+  )
 
   return (
     <div ref={width === undefined ? ref : undefined} className={className}>
-      <ContainerSizeContext.Provider value={value}>{children}</ContainerSizeContext.Provider>
+      <ContainerSizeContext.Provider value={value}>
+        {children}
+      </ContainerSizeContext.Provider>
     </div>
-  );
+  )
 }

@@ -1,7 +1,7 @@
-import type { Pillar } from "@/lib/kpi/types";
+import type { Pillar } from "@/lib/kpi/types"
 
-import { isAtOrAbove } from "./levels";
-import type { ScopeLookup } from "./resolve";
+import { isAtOrAbove } from "./levels"
+import type { ScopeLookup } from "./resolve"
 
 /**
  * A role is a root scope plus a depth cap — not a permission list.
@@ -15,17 +15,17 @@ import type { ScopeLookup } from "./resolve";
  * not a grant.
  */
 
-export type PeerVisibility = "none" | "anonymised-band" | "named-group";
+export type PeerVisibility = "none" | "anonymised-band" | "named-group"
 
 export interface Role {
-  id: string;
-  label: string;
+  id: string
+  label: string
   /** Where this role's tree starts. More than one ⇒ a synthetic "My regions" root. */
-  rootIds: readonly string[];
+  rootIds: readonly string[]
   /** The deepest level this role may reach. */
-  maxLevel: string;
-  pillars: readonly Pillar[] | "all";
-  peerVisibility: PeerVisibility;
+  maxLevel: string
+  pillars: readonly Pillar[] | "all"
+  peerVisibility: PeerVisibility
 }
 
 export const ROLES: readonly Role[] = [
@@ -54,17 +54,17 @@ export const ROLES: readonly Role[] = [
     // The recommended default: rank without naming (PLAN §1.5).
     peerVisibility: "anonymised-band",
   },
-];
+]
 
-const BY_ID = new Map(ROLES.map((role) => [role.id, role]));
+const BY_ID = new Map(ROLES.map((role) => [role.id, role]))
 
 export function roleById(id: string): Role {
-  const role = BY_ID.get(id);
-  if (!role) throw new RangeError(`unknown role: "${id}"`);
-  return role;
+  const role = BY_ID.get(id)
+  if (!role) throw new RangeError(`unknown role: "${id}"`)
+  return role
 }
 
-export const DEFAULT_ROLE_ID = "super-admin";
+export const DEFAULT_ROLE_ID = "super-admin"
 
 /**
  * Is this role allowed to see this path?
@@ -76,20 +76,24 @@ export const DEFAULT_ROLE_ID = "super-admin";
  * A hand-edited URL that fails either is a 403, and there is an e2e test that does
  * exactly that (PLAN §6.4).
  */
-export function isAuthorisedScope(role: Role, ids: readonly string[], lookup: ScopeLookup): boolean {
-  const fullPath = [lookup.rootId, ...ids];
+export function isAuthorisedScope(
+  role: Role,
+  ids: readonly string[],
+  lookup: ScopeLookup
+): boolean {
+  const fullPath = [lookup.rootId, ...ids]
 
-  const rootIndex = fullPath.findIndex((id) => role.rootIds.includes(id));
-  if (rootIndex === -1) return false;
+  const rootIndex = fullPath.findIndex((id) => role.rootIds.includes(id))
+  if (rootIndex === -1) return false
 
   // Everything at or below the role's root must respect the depth cap. Levels above it
   // are on the path by construction and are never rendered.
   for (const id of fullPath.slice(rootIndex)) {
-    const level = lookup.levelOf(id);
-    if (level === null) return false;
-    if (!isAtOrAbove(level, role.maxLevel)) return false;
+    const level = lookup.levelOf(id)
+    if (level === null) return false
+    if (!isAtOrAbove(level, role.maxLevel)) return false
   }
-  return true;
+  return true
 }
 
 /**
@@ -99,29 +103,35 @@ export function isAuthorisedScope(role: Role, ids: readonly string[], lookup: Sc
  * single home; the UI labels that "My regions" (PLAN §1.4).
  */
 export function homeScopeIds(role: Role, lookup: ScopeLookup): string[] {
-  if (role.rootIds.length !== 1) return [];
-  const [root] = role.rootIds;
-  if (root === lookup.rootId) return [];
+  if (role.rootIds.length !== 1) return []
+  const [root] = role.rootIds
+  if (root === lookup.rootId) return []
 
   // Walk down from the tree root to the role's root so the URL is a real path.
-  const path = findPath(lookup.rootId, root, lookup);
-  return path ?? [];
+  const path = findPath(lookup.rootId, root, lookup)
+  return path ?? []
 }
 
-function findPath(from: string, to: string, lookup: ScopeLookup): string[] | null {
-  if (from === to) return [];
+function findPath(
+  from: string,
+  to: string,
+  lookup: ScopeLookup
+): string[] | null {
+  if (from === to) return []
   for (const child of lookup.childrenOf(from) ?? []) {
-    const rest = findPath(child.id, to, lookup);
-    if (rest) return [child.id, ...rest];
+    const rest = findPath(child.id, to, lookup)
+    if (rest) return [child.id, ...rest]
   }
-  return null;
+  return null
 }
 
 /** Can this role drill one more level, from a node at `level`? */
 export function canDrillFrom(role: Role, level: string | null): boolean {
-  return level !== null && isAtOrAbove(level, role.maxLevel);
+  return level !== null && isAtOrAbove(level, role.maxLevel)
 }
 
 export function rolePillars(role: Role): readonly Pillar[] {
-  return role.pillars === "all" ? ["revenue", "efficiency", "academic"] : role.pillars;
+  return role.pillars === "all"
+    ? ["revenue", "efficiency", "academic"]
+    : role.pillars
 }

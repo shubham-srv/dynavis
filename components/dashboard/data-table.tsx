@@ -1,6 +1,6 @@
-import type { DataTable } from "@/lib/a11y/table";
-import { NOT_MEASURED } from "@/lib/viz/format";
-import { cn } from "@/lib/utils";
+import type { DataTable } from "@/lib/a11y/table"
+import { NOT_MEASURED } from "@/lib/viz/format"
+import { cn } from "@/lib/utils"
 
 /**
  * The tabular form of a widget's data.
@@ -15,19 +15,24 @@ export function DataTableView({
   captionHidden = false,
   formatCell,
 }: {
-  table: DataTable;
-  className?: string;
+  table: DataTable
+  className?: string
   /** Hide the caption visually while keeping it for assistive tech. */
-  captionHidden?: boolean;
-  formatCell?: (value: number, columnIndex: number) => string;
+  captionHidden?: boolean
+  formatCell?: (value: number, columnIndex: number) => string
 }) {
   return (
-    <table className={cn("w-full border-collapse text-left text-sm tabular-nums", className)}>
+    <table
+      className={cn(
+        "w-full border-collapse text-left text-sm tabular-nums",
+        className
+      )}
+    >
       <caption
         className={cn(
-          "text-muted-foreground pb-2 text-left text-xs",
+          "pb-2 text-left text-xs text-muted-foreground",
           captionHidden &&
-            "absolute h-px w-px overflow-hidden whitespace-nowrap [clip-path:inset(50%)] [clip:rect(0_0_0_0)]",
+            "absolute h-px w-px overflow-hidden whitespace-nowrap [clip-path:inset(50%)] [clip:rect(0_0_0_0)]"
         )}
       >
         {table.caption}
@@ -39,8 +44,8 @@ export function DataTableView({
               key={column}
               scope="col"
               className={cn(
-                "text-muted-foreground border-border border-b py-1.5 pr-3 text-xs font-medium",
-                index > 0 && "text-right",
+                "border-b border-border py-1.5 pr-3 text-xs font-medium text-muted-foreground",
+                index > 0 && "text-right"
               )}
             >
               {column}
@@ -50,7 +55,10 @@ export function DataTableView({
       </thead>
       <tbody>
         {table.rows.map((row) => (
-          <tr key={String(row[0])} className="border-border/60 border-b last:border-0">
+          <tr
+            key={String(row[0])}
+            className="border-b border-border/60 last:border-0"
+          >
             {row.map((cell, index) =>
               index === 0 ? (
                 <th key={index} scope="row" className="py-1.5 pr-3 font-normal">
@@ -73,11 +81,11 @@ export function DataTableView({
                     String(cell)
                   )}
                 </td>
-              ),
+              )
             )}
           </tr>
         ))}
       </tbody>
     </table>
-  );
+  )
 }

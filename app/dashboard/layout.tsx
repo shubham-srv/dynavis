@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ReactNode } from "react"
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
@@ -6,5 +6,5 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6">
       <main>{children}</main>
     </div>
-  );
+  )
 }

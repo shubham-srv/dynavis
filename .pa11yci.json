@@ -1,13 +1,17 @@
 {
   "defaults": {
     "standard": "WCAG2AA",
-    "timeout": 30000,
+    "timeout": 40000,
     "wait": 500,
     "chromeLaunchConfig": { "args": ["--no-sandbox", "--disable-dev-shm-usage"] },
     "hideElements": "#__next-build-watcher, nextjs-portal",
     "runners": ["axe", "htmlcs"]
   },
   "urls": [
-    "http://localhost:3000/"
+    "http://localhost:3000/dashboard",
+    "http://localhost:3000/dashboard/emea/uae",
+    "http://localhost:3000/dashboard/emea/uae/dubai/sch-dxb-01",
+    "http://localhost:3000/dashboard/emea/eg?role=regional-manager",
+    "http://localhost:3000/kitchen-sink"
   ]
 }

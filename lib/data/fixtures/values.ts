@@ -1,10 +1,10 @@
-import { meanIgnoringNulls, sumIgnoringNulls } from "@/lib/data/aggregate";
-import { kpiById } from "@/lib/kpi/catalog";
-import { type FxBasis, toReporting } from "@/lib/money/fx";
+import { meanIgnoringNulls, sumIgnoringNulls } from "@/lib/data/aggregate"
+import { kpiById } from "@/lib/kpi/catalog"
+import { type FxBasis, toReporting } from "@/lib/money/fx"
 
-import { ACADEMIC_YEARS, FX } from "./fx";
-import { findNode, type OrgNode, schoolsUnder, unreportedFor } from "./org";
-import { seededFloat } from "./random";
+import { ACADEMIC_YEARS, FX } from "./fx"
+import { findNode, type OrgNode, schoolsUnder, unreportedFor } from "./org"
+import { seededFloat } from "./random"
 
 /**
  * Synthetic KPI values.
@@ -48,7 +48,7 @@ const RANGES: Record<string, readonly [number, number]> = {
   otherCost: [600, 2_600],
   revenuePerStudent: [9_000, 26_000],
   costPerStudent: [6_000, 17_000],
-};
+}
 
 /** Rough local-currency scaling so converted figures land in a believable USD band. */
 const CURRENCY_SCALE: Record<string, number> = {
@@ -60,69 +60,83 @@ const CURRENCY_SCALE: Record<string, number> = {
   BRL: 5.3,
   MXN: 19,
   USD: 1,
-};
+}
 
-const ADDITIVE = new Set(["netNewEnrolments", "grossRevenue", "staffCost", "facilityCost", "otherCost"]);
+const ADDITIVE = new Set([
+  "netNewEnrolments",
+  "grossRevenue",
+  "staffCost",
+  "facilityCost",
+  "otherCost",
+])
 
 function yearIndex(ay: string): number {
-  const index = ACADEMIC_YEARS.indexOf(ay as (typeof ACADEMIC_YEARS)[number]);
-  if (index === -1) throw new RangeError(`no fixture data for "${ay}"`);
-  return index;
+  const index = ACADEMIC_YEARS.indexOf(ay as (typeof ACADEMIC_YEARS)[number])
+  if (index === -1) throw new RangeError(`no fixture data for "${ay}"`)
+  return index
 }
 
 /** Story overlays, applied after the base value. Returns a multiplier. */
 function narrative(school: OrgNode, kpiId: string, ay: string): number {
-  const year = yearIndex(ay);
-  let factor = 1;
+  const year = yearIndex(ay)
+  let factor = 1
 
   // Egypt: margin under pressure, collection slipping.
   if (school.id.startsWith("sch-eg-")) {
-    if (kpiId === "feeCollectionRate") factor *= 1 - 0.02 * year;
-    if (kpiId === "staffCost" || kpiId === "otherCost") factor *= 1 + 0.06 * year;
+    if (kpiId === "feeCollectionRate") factor *= 1 - 0.02 * year
+    if (kpiId === "staffCost" || kpiId === "otherCost")
+      factor *= 1 + 0.06 * year
   }
 
   // Pennine Valley: a real turnaround, visible across the linked metrics.
   if (school.id === "sch-nor-01") {
-    if (kpiId === "attainmentRate") factor *= 0.82 + 0.07 * year;
-    if (kpiId === "progressScore") factor *= 0.4 + 0.3 * year;
-    if (kpiId === "staffTurnover") factor *= 1.3 - 0.15 * year;
+    if (kpiId === "attainmentRate") factor *= 0.82 + 0.07 * year
+    if (kpiId === "progressScore") factor *= 0.4 + 0.3 * year
+    if (kpiId === "staffTurnover") factor *= 1.3 - 0.15 * year
   }
 
   // The quiet group-wide slide on the north star.
-  if (kpiId === "reEnrolmentRate") factor *= 1 - 0.012 * year;
+  if (kpiId === "reEnrolmentRate") factor *= 1 - 0.012 * year
 
-  return factor;
+  return factor
 }
 
 /** A school's value for a KPI, in LOCAL currency where the KPI is money. */
-function schoolValue(school: OrgNode, kpiId: string, ay: string): number | null {
-  const meta = school.meta!;
-  const kpi = kpiById(kpiId);
+function schoolValue(
+  school: OrgNode,
+  kpiId: string,
+  ay: string
+): number | null {
+  const meta = school.meta!
+  const kpi = kpiById(kpiId)
 
   // Opened after the period in question: genuinely no data, not a zero.
   // An opening year before the fixture window indexes to -1 and imposes no restriction.
-  const openedIndex = ACADEMIC_YEARS.indexOf(meta.openedAy as (typeof ACADEMIC_YEARS)[number]);
-  if (openedIndex > 0 && yearIndex(ay) < openedIndex) return null;
-  if (kpi.requiresSeniorYears && !meta.hasSeniorYears) return null;
-  if (unreportedFor(school.id).includes(kpiId)) return null;
+  const openedIndex = ACADEMIC_YEARS.indexOf(
+    meta.openedAy as (typeof ACADEMIC_YEARS)[number]
+  )
+  if (openedIndex > 0 && yearIndex(ay) < openedIndex) return null
+  if (kpi.requiresSeniorYears && !meta.hasSeniorYears) return null
+  if (unreportedFor(school.id).includes(kpiId)) return null
 
-  const range = RANGES[kpiId];
-  if (!range) throw new RangeError(`no fixture range for KPI "${kpiId}"`);
+  const range = RANGES[kpiId]
+  if (!range) throw new RangeError(`no fixture range for KPI "${kpiId}"`)
 
-  const [min, max] = range;
-  const base = seededFloat(min, max, school.id, kpiId);
+  const [min, max] = range
+  const base = seededFloat(min, max, school.id, kpiId)
   // A gentle per-school drift so trends exist and are stable run to run.
-  const drift = 1 + (seededFloat(-0.03, 0.045, school.id, kpiId, "drift") * yearIndex(ay));
-  let value = base * drift * narrative(school, kpiId, ay);
+  const drift =
+    1 + seededFloat(-0.03, 0.045, school.id, kpiId, "drift") * yearIndex(ay)
+  let value = base * drift * narrative(school, kpiId, ay)
 
-  if (kpi.money) value *= CURRENCY_SCALE[meta.currency] ?? 1;
+  if (kpi.money) value *= CURRENCY_SCALE[meta.currency] ?? 1
   // Rates cannot exceed 1; let them saturate rather than produce 104% attendance.
-  if (kpi.format === "percent") value = Math.min(value, 0.995);
+  if (kpi.format === "percent") value = Math.min(value, 0.995)
 
-  return value;
+  return value
 }
 
-const cache = new Map<string, number | null>();
+const cache = new Map<string, number | null>()
 
 /**
  * A node's value for a KPI, in the reporting currency.
@@ -134,55 +148,64 @@ export function kpiValue(
   nodeId: string,
   kpiId: string,
   ay: string,
-  basis: FxBasis = "constant",
+  basis: FxBasis = "constant"
 ): number | null {
-  const key = `${nodeId}|${kpiId}|${ay}|${basis}`;
-  const hit = cache.get(key);
-  if (hit !== undefined) return hit;
+  const key = `${nodeId}|${kpiId}|${ay}|${basis}`
+  const hit = cache.get(key)
+  if (hit !== undefined) return hit
 
-  const value = compute(nodeId, kpiId, ay, basis);
-  cache.set(key, value);
-  return value;
+  const value = compute(nodeId, kpiId, ay, basis)
+  cache.set(key, value)
+  return value
 }
 
-function compute(nodeId: string, kpiId: string, ay: string, basis: FxBasis): number | null {
-  const node = findNode(nodeId);
-  if (!node) throw new RangeError(`unknown org node: "${nodeId}"`);
-  const kpi = kpiById(kpiId);
+function compute(
+  nodeId: string,
+  kpiId: string,
+  ay: string,
+  basis: FxBasis
+): number | null {
+  const node = findNode(nodeId)
+  if (!node) throw new RangeError(`unknown org node: "${nodeId}"`)
+  const kpi = kpiById(kpiId)
 
   if (kpi.components) {
     const total = kpi.components.reduce<number | null>((sum, component) => {
-      const part = kpiValue(nodeId, component.kpiId, ay, basis);
-      if (sum === null || part === null) return null;
-      return sum + component.sign * part;
-    }, 0);
-    const revenue = kpiValue(nodeId, kpi.components[0].kpiId, ay, basis);
-    return total === null || revenue === null || revenue === 0 ? null : total / revenue;
+      const part = kpiValue(nodeId, component.kpiId, ay, basis)
+      if (sum === null || part === null) return null
+      return sum + component.sign * part
+    }, 0)
+    const revenue = kpiValue(nodeId, kpi.components[0].kpiId, ay, basis)
+    return total === null || revenue === null || revenue === 0
+      ? null
+      : total / revenue
   }
 
   if (node.level === "school") {
-    const raw = schoolValue(node, kpiId, ay);
-    if (raw === null) return null;
-    return kpi.money ? toReporting(raw, node.meta!.currency, ay, FX, basis).value : raw;
+    const raw = schoolValue(node, kpiId, ay)
+    if (raw === null) return null
+    return kpi.money
+      ? toReporting(raw, node.meta!.currency, ay, FX, basis).value
+      : raw
   }
 
-  const schools = schoolsUnder(nodeId);
-  const values = schools.map((s) => kpiValue(s.id, kpiId, ay, basis));
+  const schools = schoolsUnder(nodeId)
+  const values = schools.map((s) => kpiValue(s.id, kpiId, ay, basis))
 
-  if (ADDITIVE.has(kpiId)) return sumIgnoringNulls(values).value;
+  if (ADDITIVE.has(kpiId)) return sumIgnoringNulls(values).value
 
   // Enrolment-weighted, so a 200-student school does not swing a region's rate as hard
   // as a 2,000-student one. Unmeasured schools drop out of both numerator and weight.
-  let weighted = 0;
-  let weight = 0;
+  let weighted = 0
+  let weight = 0
   schools.forEach((s, i) => {
-    const value = values[i];
-    if (value === null) return;
-    weighted += value * s.meta!.enrolled;
-    weight += s.meta!.enrolled;
-  });
-  return weight === 0 ? meanIgnoringNulls(values).value : weighted / weight;
+    const value = values[i]
+    if (value === null) return
+    weighted += value * s.meta!.enrolled
+    weight += s.meta!.enrolled
+  })
+  return weight === 0 ? meanIgnoringNulls(values).value : weighted / weight
 }
 
 /** Every academic year for which fixtures exist, oldest first. */
-export { ACADEMIC_YEARS };
+export { ACADEMIC_YEARS }

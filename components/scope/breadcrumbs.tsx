@@ -1,8 +1,8 @@
-import { ChevronRight } from "lucide-react";
-import Link from "next/link";
+import { ChevronRight } from "lucide-react"
+import Link from "next/link"
 
-import { type Crumb, collapseTrail } from "@/lib/scope/breadcrumbs";
-import { cn } from "@/lib/utils";
+import { type Crumb, collapseTrail } from "@/lib/scope/breadcrumbs"
+import { cn } from "@/lib/utils"
 
 /**
  * The scope trail.
@@ -20,15 +20,15 @@ export function Breadcrumbs({
   className,
   maxVisible = 3,
 }: {
-  crumbs: readonly Crumb[];
-  className?: string;
-  maxVisible?: number;
+  crumbs: readonly Crumb[]
+  className?: string
+  maxVisible?: number
 }) {
-  const { head, elided, tail } = collapseTrail(crumbs, maxVisible);
+  const { head, elided, tail } = collapseTrail(crumbs, maxVisible)
 
   return (
     <nav aria-label="Scope" className={cn("min-w-0", className)}>
-      <ol className="text-muted-foreground flex flex-wrap items-center gap-x-1 text-sm">
+      <ol className="flex flex-wrap items-center gap-x-1 text-sm text-muted-foreground">
         {head ? (
           <>
             <CrumbItem crumb={head} />
@@ -38,7 +38,7 @@ export function Breadcrumbs({
               <details className="relative">
                 <summary
                   aria-label={`Show ${elided.length} hidden levels`}
-                  className="hover:text-foreground focus-visible:ring-ring inline-flex h-11 cursor-pointer list-none items-center rounded-md px-2 focus-visible:ring-2 focus-visible:outline-none"
+                  className="inline-flex h-11 cursor-pointer list-none items-center rounded-md px-2 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                 >
                   …
                 </summary>
@@ -61,15 +61,26 @@ export function Breadcrumbs({
         ))}
       </ol>
     </nav>
-  );
+  )
 }
 
-function CrumbItem({ crumb, withSeparator = false }: { crumb: Crumb; withSeparator?: boolean }) {
+function CrumbItem({
+  crumb,
+  withSeparator = false,
+}: {
+  crumb: Crumb
+  withSeparator?: boolean
+}) {
   const label = (
-    <span className={cn("max-w-[14rem] truncate", crumb.isCurrent && "text-foreground font-medium")}>
+    <span
+      className={cn(
+        "max-w-[14rem] truncate",
+        crumb.isCurrent && "font-medium text-foreground"
+      )}
+    >
       {crumb.label}
     </span>
-  );
+  )
 
   return (
     <>
@@ -77,13 +88,16 @@ function CrumbItem({ crumb, withSeparator = false }: { crumb: Crumb; withSeparat
       <li className="flex min-w-0 items-center">
         {crumb.isCurrent ? (
           // Current location is not a link — WCAG 2.4.8, and a link to here is a lie.
-          <span aria-current="page" className="inline-flex h-11 items-center px-1">
+          <span
+            aria-current="page"
+            className="inline-flex h-11 items-center px-1"
+          >
             {label}
           </span>
         ) : (
           <Link
             href={crumb.href}
-            className="hover:text-foreground focus-visible:ring-ring inline-flex h-11 items-center rounded-md px-1 focus-visible:ring-2 focus-visible:outline-none"
+            className="inline-flex h-11 items-center rounded-md px-1 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
           >
             {label}
           </Link>
@@ -93,7 +107,7 @@ function CrumbItem({ crumb, withSeparator = false }: { crumb: Crumb; withSeparat
           <details className="relative">
             <summary
               aria-label={`Switch from ${crumb.label} to another ${crumb.level}`}
-              className="hover:text-foreground focus-visible:ring-ring inline-flex size-11 cursor-pointer list-none items-center justify-center rounded-md focus-visible:ring-2 focus-visible:outline-none"
+              className="inline-flex size-11 cursor-pointer list-none items-center justify-center rounded-md hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
             >
               <ChevronRight aria-hidden className="size-3 rotate-90" />
             </summary>
@@ -102,16 +116,21 @@ function CrumbItem({ crumb, withSeparator = false }: { crumb: Crumb; withSeparat
         ) : null}
       </li>
     </>
-  );
+  )
 }
 
 function SiblingList({
   items,
 }: {
-  items: readonly { id: string; label: string; href: string; isCurrent: boolean }[];
+  items: readonly {
+    id: string
+    label: string
+    href: string
+    isCurrent: boolean
+  }[]
 }) {
   return (
-    <ul className="bg-popover text-popover-foreground border-border absolute top-full left-0 z-20 mt-1 max-h-72 min-w-56 overflow-auto rounded-lg border p-1 shadow-md">
+    <ul className="absolute top-full left-0 z-20 mt-1 max-h-72 min-w-56 overflow-auto rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-md">
       {items.map((item) => (
         <li key={item.id}>
           {/*
@@ -123,17 +142,19 @@ function SiblingList({
           <Link
             href={item.href}
             className={cn(
-              "hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring flex min-h-11 items-center rounded-md px-3 text-sm focus-visible:ring-2 focus-visible:outline-none",
-              item.isCurrent && "text-foreground font-medium",
+              "flex min-h-11 items-center rounded-md px-3 text-sm hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+              item.isCurrent && "font-medium text-foreground"
             )}
           >
             {item.label}
-            {item.isCurrent ? <span className="sr-only"> (current)</span> : null}
+            {item.isCurrent ? (
+              <span className="sr-only"> (current)</span>
+            ) : null}
           </Link>
         </li>
       ))}
     </ul>
-  );
+  )
 }
 
 function Separator() {
@@ -141,5 +162,5 @@ function Separator() {
     <li aria-hidden className="text-muted-foreground/60 select-none">
       ›
     </li>
-  );
+  )
 }

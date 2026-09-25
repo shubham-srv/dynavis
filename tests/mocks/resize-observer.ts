@@ -11,45 +11,56 @@
  *   expect(screen.getByRole("table")).toBeInTheDocument();
  */
 
-type Size = { width: number; height: number };
+type Size = { width: number; height: number }
 
-const observers = new Set<MockResizeObserver>();
-const sizes = new WeakMap<Element, Size>();
+const observers = new Set<MockResizeObserver>()
+const sizes = new WeakMap<Element, Size>()
 
 class MockResizeObserver implements ResizeObserver {
-  readonly targets = new Set<Element>();
+  readonly targets = new Set<Element>()
 
   constructor(private readonly callback: ResizeObserverCallback) {
-    observers.add(this);
+    observers.add(this)
   }
 
   observe(target: Element): void {
-    this.targets.add(target);
+    this.targets.add(target)
     // Real observers fire once on observe. Components that set state from the first
     // callback break if the mock stays silent, so mirror that behaviour.
-    const size = sizes.get(target);
-    if (size) this.emit(target, size);
+    const size = sizes.get(target)
+    if (size) this.emit(target, size)
   }
 
   unobserve(target: Element): void {
-    this.targets.delete(target);
+    this.targets.delete(target)
   }
 
   disconnect(): void {
-    this.targets.clear();
-    observers.delete(this);
+    this.targets.clear()
+    observers.delete(this)
   }
 
   emit(target: Element, size: Size): void {
-    const box: ResizeObserverSize = { inlineSize: size.width, blockSize: size.height };
+    const box: ResizeObserverSize = {
+      inlineSize: size.width,
+      blockSize: size.height,
+    }
     const entry = {
       target,
-      contentRect: { ...size, top: 0, left: 0, right: size.width, bottom: size.height, x: 0, y: 0 },
+      contentRect: {
+        ...size,
+        top: 0,
+        left: 0,
+        right: size.width,
+        bottom: size.height,
+        x: 0,
+        y: 0,
+      },
       borderBoxSize: [box],
       contentBoxSize: [box],
       devicePixelContentBoxSize: [box],
-    } as unknown as ResizeObserverEntry;
-    this.callback([entry], this);
+    } as unknown as ResizeObserverEntry
+    this.callback([entry], this)
   }
 }
 
@@ -61,7 +72,7 @@ class MockResizeObserver implements ResizeObserver {
  * do not want tests to hide.
  */
 export function resizeTo(target: Element, size: Size): void {
-  sizes.set(target, size);
+  sizes.set(target, size)
   target.getBoundingClientRect = () =>
     ({
       ...size,
@@ -72,17 +83,18 @@ export function resizeTo(target: Element, size: Size): void {
       x: 0,
       y: 0,
       toJSON: () => ({}),
-    }) as DOMRect;
+    }) as DOMRect
 
   for (const observer of observers) {
-    if (observer.targets.has(target)) observer.emit(target, size);
+    if (observer.targets.has(target)) observer.emit(target, size)
   }
 }
 
 export function installResizeObserverMock(): void {
-  globalThis.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
+  globalThis.ResizeObserver =
+    MockResizeObserver as unknown as typeof ResizeObserver
 }
 
 export function resetResizeObservers(): void {
-  observers.clear();
+  observers.clear()
 }

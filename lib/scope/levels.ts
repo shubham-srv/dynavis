@@ -1,4 +1,4 @@
-import type { ScopeLevel } from "./types";
+import type { ScopeLevel } from "./types"
 
 /**
  * The levels this deployment knows about.
@@ -13,21 +13,21 @@ export const LEVELS: readonly ScopeLevel[] = [
   { key: "country", label: "Country", pluralLabel: "Countries", depth: 2 },
   { key: "cluster", label: "Cluster", pluralLabel: "Clusters", depth: 3 },
   { key: "school", label: "School", pluralLabel: "Schools", depth: 4 },
-];
+]
 
-const BY_KEY = new Map(LEVELS.map((level) => [level.key, level]));
+const BY_KEY = new Map(LEVELS.map((level) => [level.key, level]))
 
 export function levelByKey(key: string): ScopeLevel {
-  const level = BY_KEY.get(key);
-  if (!level) throw new RangeError(`unknown scope level: "${key}"`);
-  return level;
+  const level = BY_KEY.get(key)
+  if (!level) throw new RangeError(`unknown scope level: "${key}"`)
+  return level
 }
 
 export function levelRank(key: string): number {
-  return levelByKey(key).depth;
+  return levelByKey(key).depth
 }
 
 /** Is `key` at or above `limit` in the hierarchy? Used for role depth caps (PLAN §1.4). */
 export function isAtOrAbove(key: string, limit: string): boolean {
-  return levelRank(key) <= levelRank(limit);
+  return levelRank(key) <= levelRank(limit)
 }

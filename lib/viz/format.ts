@@ -1,5 +1,5 @@
-import type { ValueFormat } from "@/lib/data/envelope";
-import type { DeltaFormat } from "@/lib/kpi/types";
+import type { ValueFormat } from "@/lib/data/envelope"
+import type { DeltaFormat } from "@/lib/kpi/types"
 
 /**
  * Turning numbers into text people will act on.
@@ -10,23 +10,33 @@ import type { DeltaFormat } from "@/lib/kpi/types";
  */
 
 /** What an unmeasured value looks like. Never "0", never blank (PLAN §12.3). */
-export const NOT_MEASURED = "—";
+export const NOT_MEASURED = "—"
 
 export interface FormatOptions {
-  format: ValueFormat;
-  precision?: number;
-  unit?: string;
+  format: ValueFormat
+  precision?: number
+  unit?: string
   /** ISO currency code; required when `format` is "currency". */
-  currency?: string;
-  locale?: string;
+  currency?: string
+  locale?: string
   /** Abbreviate large magnitudes: 1.2M, 847K. Used below the `standard` variant. */
-  compact?: boolean;
+  compact?: boolean
 }
 
-export function formatValue(value: number | null | undefined, options: FormatOptions): string {
-  if (value === null || value === undefined || !Number.isFinite(value)) return NOT_MEASURED;
+export function formatValue(
+  value: number | null | undefined,
+  options: FormatOptions
+): string {
+  if (value === null || value === undefined || !Number.isFinite(value))
+    return NOT_MEASURED
 
-  const { format, precision = 0, currency, locale = "en", compact = false } = options;
+  const {
+    format,
+    precision = 0,
+    currency,
+    locale = "en",
+    compact = false,
+  } = options
 
   switch (format) {
     case "percent":
@@ -35,23 +45,26 @@ export function formatValue(value: number | null | undefined, options: FormatOpt
         style: "percent",
         minimumFractionDigits: precision,
         maximumFractionDigits: precision,
-      }).format(value);
+      }).format(value)
 
     case "currency":
-      if (!currency) throw new TypeError('formatValue: "currency" format requires a currency code');
+      if (!currency)
+        throw new TypeError(
+          'formatValue: "currency" format requires a currency code'
+        )
       return new Intl.NumberFormat(locale, {
         style: "currency",
         currency,
         notation: compact ? "compact" : "standard",
         minimumFractionDigits: compact ? 0 : precision,
         maximumFractionDigits: compact ? 1 : precision,
-      }).format(value);
+      }).format(value)
 
     case "ratio":
-      return `${round(value, precision)}:1`;
+      return `${round(value, precision)}:1`
 
     case "duration":
-      return `${round(value, precision)}${options.unit ?? "d"}`;
+      return `${round(value, precision)}${options.unit ?? "d"}`
 
     case "number":
     default:
@@ -59,12 +72,12 @@ export function formatValue(value: number | null | undefined, options: FormatOpt
         notation: compact ? "compact" : "standard",
         minimumFractionDigits: compact ? 0 : precision,
         maximumFractionDigits: compact ? 1 : precision,
-      }).format(value);
+      }).format(value)
   }
 }
 
 function round(value: number, precision: number): string {
-  return value.toFixed(precision);
+  return value.toFixed(precision)
 }
 
 /**
@@ -80,47 +93,54 @@ function round(value: number, precision: number): string {
 export function computeDelta(
   current: number | null | undefined,
   baseline: number | null | undefined,
-  deltaFormat: DeltaFormat,
+  deltaFormat: DeltaFormat
 ): number | null {
-  if (current === null || current === undefined || !Number.isFinite(current)) return null;
-  if (baseline === null || baseline === undefined || !Number.isFinite(baseline)) return null;
+  if (current === null || current === undefined || !Number.isFinite(current))
+    return null
+  if (baseline === null || baseline === undefined || !Number.isFinite(baseline))
+    return null
 
-  const difference = current - baseline;
+  const difference = current - baseline
   switch (deltaFormat) {
     case "absolute":
-      return difference;
+      return difference
     case "percentage-points":
-      return difference * 100;
+      return difference * 100
     case "percent":
-      if (baseline === 0) return null;
-      return (difference / Math.abs(baseline)) * 100;
+      if (baseline === 0) return null
+      return (difference / Math.abs(baseline)) * 100
     default: {
-      const exhaustive: never = deltaFormat;
-      throw new TypeError(`unknown delta format: ${String(exhaustive)}`);
+      const exhaustive: never = deltaFormat
+      throw new TypeError(`unknown delta format: ${String(exhaustive)}`)
     }
   }
 }
 
 export interface DeltaFormatOptions {
-  deltaFormat: DeltaFormat;
-  precision?: number;
-  locale?: string;
+  deltaFormat: DeltaFormat
+  precision?: number
+  locale?: string
   /** For `absolute` deltas on money or counts. */
-  valueFormat?: ValueFormat;
-  currency?: string;
-  compact?: boolean;
+  valueFormat?: ValueFormat
+  currency?: string
+  compact?: boolean
 }
 
 /** Render a delta with an explicit sign and the right unit. */
-export function formatDelta(delta: number | null, options: DeltaFormatOptions): string {
-  if (delta === null || !Number.isFinite(delta)) return NOT_MEASURED;
+export function formatDelta(
+  delta: number | null,
+  options: DeltaFormatOptions
+): string {
+  if (delta === null || !Number.isFinite(delta)) return NOT_MEASURED
 
-  const { deltaFormat, precision = 1, locale = "en" } = options;
-  const sign = delta > 0 ? "+" : delta < 0 ? "−" : "±";
-  const magnitude = Math.abs(delta);
+  const { deltaFormat, precision = 1, locale = "en" } = options
+  const sign = delta > 0 ? "+" : delta < 0 ? "−" : "±"
+  const magnitude = Math.abs(delta)
 
-  if (deltaFormat === "percentage-points") return `${sign}${magnitude.toFixed(precision)}pp`;
-  if (deltaFormat === "percent") return `${sign}${magnitude.toFixed(precision)}%`;
+  if (deltaFormat === "percentage-points")
+    return `${sign}${magnitude.toFixed(precision)}pp`
+  if (deltaFormat === "percent")
+    return `${sign}${magnitude.toFixed(precision)}%`
 
   return `${sign}${formatValue(magnitude, {
     format: options.valueFormat ?? "number",
@@ -128,7 +148,7 @@ export function formatDelta(delta: number | null, options: DeltaFormatOptions): 
     currency: options.currency,
     locale,
     compact: options.compact,
-  })}`;
+  })}`
 }
 
 /**
@@ -138,8 +158,11 @@ export function formatDelta(delta: number | null, options: DeltaFormatOptions): 
  * floor the UI greys the delta and shows `n` rather than hiding it — hiding looks like
  * missing data, which is a different claim (PLAN §8.6).
  */
-export function isDeltaMeaningful(n: number | null | undefined, minSampleSize = 10): boolean {
-  return n !== null && n !== undefined && n >= minSampleSize;
+export function isDeltaMeaningful(
+  n: number | null | undefined,
+  minSampleSize = 10
+): boolean {
+  return n !== null && n !== undefined && n >= minSampleSize
 }
 
 /**
@@ -149,21 +172,24 @@ export function isDeltaMeaningful(n: number | null | undefined, minSampleSize = 
  * make them fit is the thing that produced the original dashboard's unreadable charts
  * (PLAN §7).
  */
-export function thinTicks<T>(values: readonly T[], valueOf: (item: T) => number | null): T[] {
-  if (values.length <= 3) return [...values];
+export function thinTicks<T>(
+  values: readonly T[],
+  valueOf: (item: T) => number | null
+): T[] {
+  if (values.length <= 3) return [...values]
 
-  let peakIndex = -1;
-  let peak = Number.NEGATIVE_INFINITY;
+  let peakIndex = -1
+  let peak = Number.NEGATIVE_INFINITY
   values.forEach((item, index) => {
-    const value = valueOf(item);
+    const value = valueOf(item)
     if (value !== null && Number.isFinite(value) && value > peak) {
-      peak = value;
-      peakIndex = index;
+      peak = value
+      peakIndex = index
     }
-  });
+  })
 
-  const keep = new Set([0, values.length - 1]);
-  if (peakIndex > 0 && peakIndex < values.length - 1) keep.add(peakIndex);
+  const keep = new Set([0, values.length - 1])
+  if (peakIndex > 0 && peakIndex < values.length - 1) keep.add(peakIndex)
 
-  return [...keep].sort((a, b) => a - b).map((index) => values[index]);
+  return [...keep].sort((a, b) => a - b).map((index) => values[index])
 }

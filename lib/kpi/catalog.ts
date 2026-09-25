@@ -1,4 +1,4 @@
-import type { KpiDefinition, Pillar } from "./types";
+import type { KpiDefinition, Pillar } from "./types"
 
 /**
  * The KPI catalog — six per pillar, not sixty.
@@ -88,7 +88,7 @@ const REVENUE: KpiDefinition[] = [
     deltaFormat: "absolute",
     precision: 0,
   },
-];
+]
 
 const EFFICIENCY: KpiDefinition[] = [
   {
@@ -163,7 +163,7 @@ const EFFICIENCY: KpiDefinition[] = [
     deltaFormat: "percentage-points",
     precision: 1,
   },
-];
+]
 
 const ACADEMIC: KpiDefinition[] = [
   {
@@ -238,7 +238,7 @@ const ACADEMIC: KpiDefinition[] = [
     deltaFormat: "absolute",
     precision: 0,
   },
-];
+]
 
 /** Inputs to composites. Available for decomposition, never offered in the picker. */
 const COMPONENTS: KpiDefinition[] = [
@@ -294,22 +294,30 @@ const COMPONENTS: KpiDefinition[] = [
     money: true,
     componentOnly: true,
   },
-];
+]
 
-export const KPIS: readonly KpiDefinition[] = [...REVENUE, ...EFFICIENCY, ...ACADEMIC, ...COMPONENTS];
+export const KPIS: readonly KpiDefinition[] = [
+  ...REVENUE,
+  ...EFFICIENCY,
+  ...ACADEMIC,
+  ...COMPONENTS,
+]
 
-const BY_ID = new Map(KPIS.map((kpi) => [kpi.id, kpi]));
+const BY_ID = new Map(KPIS.map((kpi) => [kpi.id, kpi]))
 
 export function kpiById(id: string): KpiDefinition {
-  const kpi = BY_ID.get(id);
-  if (!kpi) throw new RangeError(`unknown KPI: "${id}"`);
-  return kpi;
+  const kpi = BY_ID.get(id)
+  if (!kpi) throw new RangeError(`unknown KPI: "${id}"`)
+  return kpi
 }
 
 /** The KPIs a user can actually choose — composites' inputs are excluded. */
 export function selectableKpis(pillar?: Pillar): readonly KpiDefinition[] {
-  return KPIS.filter((kpi) => !kpi.componentOnly && (pillar === undefined || kpi.pillar === pillar));
+  return KPIS.filter(
+    (kpi) =>
+      !kpi.componentOnly && (pillar === undefined || kpi.pillar === pillar)
+  )
 }
 
 /** The proposed north star (PLAN §1.2). */
-export const NORTH_STAR_KPI_ID = "reEnrolmentRate";
+export const NORTH_STAR_KPI_ID = "reEnrolmentRate"

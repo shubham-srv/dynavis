@@ -1,10 +1,13 @@
-import "@testing-library/jest-dom/vitest";
+import "@testing-library/jest-dom/vitest"
 
-import { cleanup } from "@testing-library/react";
-import { afterEach, beforeEach } from "vitest";
+import { cleanup } from "@testing-library/react"
+import { afterEach, beforeEach } from "vitest"
 
-import { installMatchMediaMock, resetMedia } from "./mocks/match-media";
-import { installResizeObserverMock, resetResizeObservers } from "./mocks/resize-observer";
+import { installMatchMediaMock, resetMedia } from "./mocks/match-media"
+import {
+  installResizeObserverMock,
+  resetResizeObservers,
+} from "./mocks/resize-observer"
 
 /**
  * jsdom provides none of these, and all three gate what this product renders:
@@ -12,26 +15,26 @@ import { installResizeObserverMock, resetResizeObservers } from "./mocks/resize-
  * widget mounting, matchMedia carries reduced-motion. See PLAN §14.
  */
 class NoopIntersectionObserver implements IntersectionObserver {
-  readonly root = null;
-  readonly rootMargin = "";
-  readonly thresholds: readonly number[] = [];
+  readonly root = null
+  readonly rootMargin = ""
+  readonly thresholds: readonly number[] = []
   observe(): void {}
   unobserve(): void {}
   disconnect(): void {}
   takeRecords(): IntersectionObserverEntry[] {
-    return [];
+    return []
   }
 }
 
 beforeEach(() => {
-  installResizeObserverMock();
-  installMatchMediaMock();
+  installResizeObserverMock()
+  installMatchMediaMock()
   globalThis.IntersectionObserver =
-    NoopIntersectionObserver as unknown as typeof IntersectionObserver;
-});
+    NoopIntersectionObserver as unknown as typeof IntersectionObserver
+})
 
 afterEach(() => {
-  cleanup();
-  resetResizeObservers();
-  resetMedia();
-});
+  cleanup()
+  resetResizeObservers()
+  resetMedia()
+})

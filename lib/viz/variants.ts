@@ -10,10 +10,15 @@
  * (PLAN D2).
  */
 
-export type Variant = "micro" | "compact" | "standard" | "expanded";
+export type Variant = "micro" | "compact" | "standard" | "expanded"
 
 /** Narrowest first. The thresholds the §7 responsive table is written against. */
-export const VARIANTS: readonly Variant[] = ["micro", "compact", "standard", "expanded"];
+export const VARIANTS: readonly Variant[] = [
+  "micro",
+  "compact",
+  "standard",
+  "expanded",
+]
 
 /**
  * Every threshold is a multiple of `WIDTH_QUANTUM`, and that is load-bearing rather
@@ -26,7 +31,7 @@ export const VARIANT_MIN_WIDTH: Record<Variant, number> = {
   compact: 336,
   standard: 560,
   expanded: 896,
-};
+}
 
 /**
  * Pick the richest variant that fits, restricted to those the widget implements.
@@ -35,31 +40,34 @@ export const VARIANT_MIN_WIDTH: Record<Variant, number> = {
  * narrowest *supported* variant is returned rather than throwing. A widget that is too
  * cramped is a layout bug to see and fix; a crash is a blank dashboard.
  */
-export function resolveVariant(width: number, supported: readonly Variant[]): Variant {
+export function resolveVariant(
+  width: number,
+  supported: readonly Variant[]
+): Variant {
   if (supported.length === 0) {
-    throw new RangeError("a widget must support at least one variant");
+    throw new RangeError("a widget must support at least one variant")
   }
 
-  const allowed = VARIANTS.filter((variant) => supported.includes(variant));
+  const allowed = VARIANTS.filter((variant) => supported.includes(variant))
   if (allowed.length === 0) {
-    throw new RangeError(`no known variants in [${supported.join(", ")}]`);
+    throw new RangeError(`no known variants in [${supported.join(", ")}]`)
   }
 
   // A non-finite width means "we have not measured yet" — start at the narrowest and
   // let the first real measurement widen it. Never guess large: guessing large renders
   // an expanded chart into a phone for one frame.
-  const effective = Number.isFinite(width) && width > 0 ? width : 0;
+  const effective = Number.isFinite(width) && width > 0 ? width : 0
 
-  let chosen = allowed[0];
+  let chosen = allowed[0]
   for (const variant of allowed) {
-    if (effective >= VARIANT_MIN_WIDTH[variant]) chosen = variant;
+    if (effective >= VARIANT_MIN_WIDTH[variant]) chosen = variant
   }
-  return chosen;
+  return chosen
 }
 
 /** Is this variant at or below `limit` in richness? Useful for "compact or narrower" branches. */
 export function isAtMost(variant: Variant, limit: Variant): boolean {
-  return VARIANTS.indexOf(variant) <= VARIANTS.indexOf(limit);
+  return VARIANTS.indexOf(variant) <= VARIANTS.indexOf(limit)
 }
 
 /**
@@ -69,9 +77,9 @@ export function isAtMost(variant: Variant, limit: Variant): boolean {
  * of them re-renders every chart and INP dies. This is the single biggest performance
  * risk in the architecture (PLAN §15).
  */
-export const WIDTH_QUANTUM = 8;
+export const WIDTH_QUANTUM = 8
 
 export function quantiseWidth(width: number): number {
-  if (!Number.isFinite(width) || width <= 0) return 0;
-  return Math.floor(width / WIDTH_QUANTUM) * WIDTH_QUANTUM;
+  if (!Number.isFinite(width) || width <= 0) return 0
+  return Math.floor(width / WIDTH_QUANTUM) * WIDTH_QUANTUM
 }

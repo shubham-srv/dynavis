@@ -1,4 +1,4 @@
-import type { ScopeRef } from "./types";
+import type { ScopeRef } from "./types"
 
 /**
  * Scope ⇄ URL.
@@ -12,13 +12,13 @@ import type { ScopeRef } from "./types";
  */
 
 /** Ids are lowercase kebab. Anything else is a hand-edited URL, not one we produced. */
-const SEGMENT = /^[a-z0-9][a-z0-9-]{0,62}$/;
+const SEGMENT = /^[a-z0-9][a-z0-9-]{0,62}$/
 
 /** Guard against a pathological URL producing unbounded work before validation. */
-export const MAX_SCOPE_DEPTH = 8;
+export const MAX_SCOPE_DEPTH = 8
 
 export function serialiseScope(scope: ScopeRef): string[] {
-  return scope.map((step) => step.id);
+  return scope.map((step) => step.id)
 }
 
 /**
@@ -29,23 +29,25 @@ export function serialiseScope(scope: ScopeRef): string[] {
  * (PLAN §6.4). This only checks *shape*; whether the ids exist and nest correctly is
  * `resolveScope`'s job, and whether the caller may see them is the server's.
  */
-export function parseScopeSegments(segments: readonly string[] | undefined): string[] | null {
-  if (segments === undefined) return [];
-  if (!Array.isArray(segments)) return null;
-  if (segments.length > MAX_SCOPE_DEPTH) return null;
+export function parseScopeSegments(
+  segments: readonly string[] | undefined
+): string[] | null {
+  if (segments === undefined) return []
+  if (!Array.isArray(segments)) return null
+  if (segments.length > MAX_SCOPE_DEPTH) return null
 
-  const seen = new Set<string>();
+  const seen = new Set<string>()
   for (const segment of segments) {
-    if (typeof segment !== "string" || !SEGMENT.test(segment)) return null;
+    if (typeof segment !== "string" || !SEGMENT.test(segment)) return null
     // A repeated id means a cycle, which the tree cannot produce.
-    if (seen.has(segment)) return null;
-    seen.add(segment);
+    if (seen.has(segment)) return null
+    seen.add(segment)
   }
-  return [...segments];
+  return [...segments]
 }
 
 /** The href for a scope, with query preserved by the caller. */
 export function scopeHref(scope: ScopeRef, basePath = "/dashboard"): string {
-  const ids = serialiseScope(scope);
-  return ids.length ? `${basePath}/${ids.join("/")}` : basePath;
+  const ids = serialiseScope(scope)
+  return ids.length ? `${basePath}/${ids.join("/")}` : basePath
 }

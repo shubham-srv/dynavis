@@ -1,6 +1,6 @@
-import { scopeHref } from "./path";
-import type { ScopeLookup } from "./resolve";
-import type { ScopeRef } from "./types";
+import { scopeHref } from "./path"
+import type { ScopeLookup } from "./resolve"
+import type { ScopeRef } from "./types"
 
 /**
  * The breadcrumb trail.
@@ -15,44 +15,47 @@ import type { ScopeRef } from "./types";
  */
 
 export interface CrumbSibling {
-  id: string;
-  label: string;
-  href: string;
-  isCurrent: boolean;
+  id: string
+  label: string
+  href: string
+  isCurrent: boolean
 }
 
 export interface Crumb {
-  level: string;
-  id: string;
-  label: string;
-  href: string;
-  isCurrent: boolean;
-  siblings: readonly CrumbSibling[];
+  level: string
+  id: string
+  label: string
+  href: string
+  isCurrent: boolean
+  siblings: readonly CrumbSibling[]
 }
 
 export function buildBreadcrumbs(
   scope: ScopeRef,
   lookup: ScopeLookup,
-  basePath = "/dashboard",
+  basePath = "/dashboard"
 ): Crumb[] {
   return scope.map((step, index) => {
-    const trail = scope.slice(0, index + 1);
+    const trail = scope.slice(0, index + 1)
     // The root has no siblings; every other crumb's siblings are its parent's children.
-    const parent = index === 0 ? null : scope[index - 1];
+    const parent = index === 0 ? null : scope[index - 1]
     const siblings = parent
       ? (lookup.childrenOf(parent.id) ?? []).map((child) => {
           // Jumping sideways replaces this crumb and drops everything below it. The
           // root is sliced off here for the same reason it is below: it is implied by
           // the base path and must not appear as a segment.
-          const siblingTrail = [...scope.slice(0, index), { ...step, id: child.id, label: child.label }];
+          const siblingTrail = [
+            ...scope.slice(0, index),
+            { ...step, id: child.id, label: child.label },
+          ]
           return {
             id: child.id,
             label: child.label,
             href: scopeHref(siblingTrail.slice(1), basePath),
             isCurrent: child.id === step.id,
-          };
+          }
         })
-      : [];
+      : []
 
     return {
       level: step.level,
@@ -62,8 +65,8 @@ export function buildBreadcrumbs(
       href: scopeHref(trail.slice(1), basePath),
       isCurrent: index === scope.length - 1,
       siblings,
-    };
-  });
+    }
+  })
 }
 
 /**
@@ -72,11 +75,14 @@ export function buildBreadcrumbs(
  * Drilling is a navigation with no page reload and no focus change a screen reader would
  * otherwise notice, so it has to be said out loud (WCAG 4.1.3, PLAN §13).
  */
-export function scopeAnnouncement(scope: ScopeRef, widgetCount: number): string {
-  const current = scope.at(-1);
-  if (!current) return "";
-  const widgets = `${widgetCount} ${widgetCount === 1 ? "widget" : "widgets"}`;
-  return `Now viewing ${current.label}. ${widgets}.`;
+export function scopeAnnouncement(
+  scope: ScopeRef,
+  widgetCount: number
+): string {
+  const current = scope.at(-1)
+  if (!current) return ""
+  const widgets = `${widgetCount} ${widgetCount === 1 ? "widget" : "widgets"}`
+  return `Now viewing ${current.label}. ${widgets}.`
 }
 
 /**
@@ -86,13 +92,14 @@ export function scopeAnnouncement(scope: ScopeRef, widgetCount: number): string 
  */
 export function collapseTrail(
   crumbs: readonly Crumb[],
-  maxVisible = 3,
+  maxVisible = 3
 ): { head: Crumb | null; elided: Crumb[]; tail: Crumb[] } {
-  if (crumbs.length <= maxVisible) return { head: null, elided: [], tail: [...crumbs] };
-  const tailLength = maxVisible - 1;
+  if (crumbs.length <= maxVisible)
+    return { head: null, elided: [], tail: [...crumbs] }
+  const tailLength = maxVisible - 1
   return {
     head: crumbs[0],
     elided: crumbs.slice(1, crumbs.length - tailLength),
     tail: crumbs.slice(crumbs.length - tailLength),
-  };
+  }
 }

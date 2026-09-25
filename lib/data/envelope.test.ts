@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest"
 
-import { BASELINE_FALLBACK } from "@/lib/data/envelope";
+import { BASELINE_FALLBACK } from "@/lib/data/envelope"
 
 describe("BASELINE_FALLBACK", () => {
   /**
@@ -10,10 +10,15 @@ describe("BASELINE_FALLBACK", () => {
    * means, so it should have to be a deliberate edit here.
    */
   it("falls through from the strongest claim to the weakest", () => {
-    expect(BASELINE_FALLBACK).toEqual(["target", "prior-period", "peer-median", "none"]);
-  });
+    expect(BASELINE_FALLBACK).toEqual([
+      "target",
+      "prior-period",
+      "peer-median",
+      "none",
+    ])
+  })
 
   it("ends in 'none', so resolution always terminates", () => {
-    expect(BASELINE_FALLBACK.at(-1)).toBe("none");
-  });
-});
+    expect(BASELINE_FALLBACK.at(-1)).toBe("none")
+  })
+})

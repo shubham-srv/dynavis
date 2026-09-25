@@ -1,4 +1,4 @@
-import type { AcademicCalendar } from "./types";
+import type { AcademicCalendar } from "./types"
 
 /**
  * The calendars in play across the group.
@@ -21,7 +21,7 @@ export const NORTHERN: AcademicCalendar = {
     { id: "t2", label: "Spring", startOffsetDays: 130, endOffsetDays: 235 },
     { id: "t3", label: "Summer", startOffsetDays: 250, endOffsetDays: 320 },
   ],
-};
+}
 
 /** Mid-January start, four terms. Australia, South Africa. */
 export const SOUTHERN: AcademicCalendar = {
@@ -36,13 +36,13 @@ export const SOUTHERN: AcademicCalendar = {
     { id: "t3", label: "Term 3", startOffsetDays: 175, endOffsetDays: 245 },
     { id: "t4", label: "Term 4", startOffsetDays: 260, endOffsetDays: 330 },
   ],
-};
+}
 
-export const CALENDARS = { northern: NORTHERN, southern: SOUTHERN } as const;
-export type CalendarId = keyof typeof CALENDARS;
+export const CALENDARS = { northern: NORTHERN, southern: SOUTHERN } as const
+export type CalendarId = keyof typeof CALENDARS
 
 export function calendarById(id: string): AcademicCalendar {
-  const calendar = CALENDARS[id as CalendarId];
-  if (!calendar) throw new RangeError(`unknown academic calendar: "${id}"`);
-  return calendar;
+  const calendar = CALENDARS[id as CalendarId]
+  if (!calendar) throw new RangeError(`unknown academic calendar: "${id}"`)
+  return calendar
 }

@@ -9,7 +9,7 @@
  * The calendar is a property of the country/school, never of the group.
  */
 
-export type PeriodKind = "week" | "month" | "term" | "academic-year" | "ytd";
+export type PeriodKind = "week" | "month" | "term" | "academic-year" | "ytd"
 
 /**
  * A period, by stable id. Ids are designed so the comparable prior period is a pure
@@ -24,44 +24,44 @@ export type PeriodKind = "week" | "month" | "term" | "academic-year" | "ytd";
  *   ytd            `ay-2025-ytd`      academic year start → as-of date
  */
 export interface PeriodRef {
-  kind: PeriodKind;
-  id: string;
+  kind: PeriodKind
+  id: string
 }
 
 export interface TermDefinition {
-  id: string;
-  label: string;
+  id: string
+  label: string
   /** Offset in days from the start of the academic year. */
-  startOffsetDays: number;
+  startOffsetDays: number
   /** Inclusive. Offset in days from the start of the academic year. */
-  endOffsetDays: number;
+  endOffsetDays: number
 }
 
 export interface AcademicCalendar {
-  id: string;
-  label: string;
+  id: string
+  label: string
   /** Month the academic year opens, 1-12. Northern: 9. Southern: 1. */
-  startMonth: number;
-  startDay: number;
+  startMonth: number
+  startDay: number
   /**
    * How the year reads to a human. A northern year spanning two calendar years is
    * "2025/26"; a southern year inside one calendar year is just "2025".
    */
-  labelStyle: "span" | "single";
-  terms: readonly TermDefinition[];
+  labelStyle: "span" | "single"
+  terms: readonly TermDefinition[]
 }
 
 export interface ResolvedPeriod {
-  ref: PeriodRef;
-  label: string;
+  ref: PeriodRef
+  label: string
   /** Inclusive ISO dates, `YYYY-MM-DD`. */
-  start: string;
-  end: string;
+  start: string
+  end: string
   /** The academic year this period belongs to, e.g. `ay-2025`. */
-  academicYear: string;
+  academicYear: string
   /**
    * False when the period contains no teaching days — a week in the summer break.
    * Attendance "last week" over the break is *not applicable*, not 0% (PLAN §12.1).
    */
-  inSession: boolean;
+  inSession: boolean
 }

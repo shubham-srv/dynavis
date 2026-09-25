@@ -1,8 +1,8 @@
-"use client";
+"use client"
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react"
 
-import { quantiseWidth } from "@/lib/viz/variants";
+import { quantiseWidth } from "@/lib/viz/variants"
 
 /**
  * Measure an element's own width.
@@ -20,71 +20,77 @@ import { quantiseWidth } from "@/lib/viz/variants";
  */
 
 export interface ContainerSize {
-  width: number;
-  height: number;
+  width: number
+  height: number
   /** False until the first real measurement — lets callers render a skeleton instead. */
-  measured: boolean;
+  measured: boolean
 }
 
-const UNMEASURED: ContainerSize = { width: 0, height: 0, measured: false };
+const UNMEASURED: ContainerSize = { width: 0, height: 0, measured: false }
 
 export function useContainerSize<T extends HTMLElement = HTMLDivElement>(
-  debounceMs = 100,
+  debounceMs = 100
 ): [(node: T | null) => void, ContainerSize] {
-  const [size, setSize] = useState<ContainerSize>(UNMEASURED);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const observer = useRef<ResizeObserver | null>(null);
+  const [size, setSize] = useState<ContainerSize>(UNMEASURED)
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const observer = useRef<ResizeObserver | null>(null)
 
   const apply = useCallback((width: number, height: number) => {
-    const next = { width: quantiseWidth(width), height: Math.round(height), measured: true };
+    const next = {
+      width: quantiseWidth(width),
+      height: Math.round(height),
+      measured: true,
+    }
     // Bail out when the bucket has not changed, so a 1px drag is not a React update.
     setSize((current) =>
-      current.width === next.width && current.height === next.height && current.measured
+      current.width === next.width &&
+      current.height === next.height &&
+      current.measured
         ? current
-        : next,
-    );
-  }, []);
+        : next
+    )
+  }, [])
 
   const ref = useCallback(
     (node: T | null) => {
-      observer.current?.disconnect();
-      if (timer.current) clearTimeout(timer.current);
+      observer.current?.disconnect()
+      if (timer.current) clearTimeout(timer.current)
 
       if (!node) {
-        observer.current = null;
-        return;
+        observer.current = null
+        return
       }
 
       // SSR-safe: on the server there is no ResizeObserver and no layout to measure.
-      if (typeof ResizeObserver === "undefined") return;
+      if (typeof ResizeObserver === "undefined") return
 
       observer.current = new ResizeObserver((entries) => {
-        const entry = entries[0];
-        if (!entry) return;
-        const box = entry.contentBoxSize?.[0];
-        const width = box ? box.inlineSize : entry.contentRect.width;
-        const height = box ? box.blockSize : entry.contentRect.height;
+        const entry = entries[0]
+        if (!entry) return
+        const box = entry.contentBoxSize?.[0]
+        const width = box ? box.inlineSize : entry.contentRect.width
+        const height = box ? box.blockSize : entry.contentRect.height
 
         if (debounceMs <= 0) {
-          apply(width, height);
-          return;
+          apply(width, height)
+          return
         }
-        if (timer.current) clearTimeout(timer.current);
-        timer.current = setTimeout(() => apply(width, height), debounceMs);
-      });
+        if (timer.current) clearTimeout(timer.current)
+        timer.current = setTimeout(() => apply(width, height), debounceMs)
+      })
 
-      observer.current.observe(node);
+      observer.current.observe(node)
     },
-    [apply, debounceMs],
-  );
+    [apply, debounceMs]
+  )
 
   useEffect(
     () => () => {
-      observer.current?.disconnect();
-      if (timer.current) clearTimeout(timer.current);
+      observer.current?.disconnect()
+      if (timer.current) clearTimeout(timer.current)
     },
-    [],
-  );
+    []
+  )
 
-  return [ref, size];
+  return [ref, size]
 }

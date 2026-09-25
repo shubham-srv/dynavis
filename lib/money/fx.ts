@@ -7,45 +7,47 @@
  * figure without a rate date is not reproducible, and finance will ask.
  */
 
-export type FxBasis = "constant" | "nominal";
+export type FxBasis = "constant" | "nominal"
 
 export interface FxTable {
   /** Reporting currency. Everything converts *to* this. */
-  base: string;
+  base: string
   /**
    * The period whose rates constant-currency conversion uses for every period, so that
    * period-over-period movement reflects trading rather than the FX market.
    */
-  constantBasisPeriod: string;
+  constantBasisPeriod: string
   /** rates[currency][periodId] — units of `currency` per 1 unit of `base`. */
-  rates: Readonly<Record<string, Readonly<Record<string, number>>>>;
+  rates: Readonly<Record<string, Readonly<Record<string, number>>>>
 }
 
 export interface Converted {
   /** `null` in, `null` out: an unmeasured amount is not zero (PLAN §12.3). */
-  value: number | null;
-  currency: string;
-  rate: number;
-  basis: FxBasis;
+  value: number | null
+  currency: string
+  rate: number
+  basis: FxBasis
   /** The period the rate came from — `meta.currency.fxAsOf` in the envelope. */
-  rateAsOf: string;
+  rateAsOf: string
 }
 
 function rateFor(currency: string, periodId: string, fx: FxTable): number {
-  const series = fx.rates[currency];
+  const series = fx.rates[currency]
   if (!series) {
-    throw new RangeError(`no FX rates for "${currency}" (reporting currency is ${fx.base})`);
+    throw new RangeError(
+      `no FX rates for "${currency}" (reporting currency is ${fx.base})`
+    )
   }
-  const rate = series[periodId];
+  const rate = series[periodId]
   if (rate === undefined) {
     // Deliberately not "fall back to the nearest period". A silently wrong rate
     // produces a plausible number, which is worse than a missing one.
-    throw new RangeError(`no ${currency} rate for period "${periodId}"`);
+    throw new RangeError(`no ${currency} rate for period "${periodId}"`)
   }
   if (!Number.isFinite(rate) || rate <= 0) {
-    throw new RangeError(`invalid ${currency} rate for "${periodId}": ${rate}`);
+    throw new RangeError(`invalid ${currency} rate for "${periodId}": ${rate}`)
   }
-  return rate;
+  return rate
 }
 
 /** Convert a local amount into the reporting currency. */
@@ -54,20 +56,26 @@ export function toReporting(
   currency: string,
   periodId: string,
   fx: FxTable,
-  basis: FxBasis = "constant",
+  basis: FxBasis = "constant"
 ): Converted {
   if (currency === fx.base) {
-    return { value: amount, currency: fx.base, rate: 1, basis, rateAsOf: periodId };
+    return {
+      value: amount,
+      currency: fx.base,
+      rate: 1,
+      basis,
+      rateAsOf: periodId,
+    }
   }
-  const rateAsOf = basis === "constant" ? fx.constantBasisPeriod : periodId;
-  const rate = rateFor(currency, rateAsOf, fx);
+  const rateAsOf = basis === "constant" ? fx.constantBasisPeriod : periodId
+  const rate = rateFor(currency, rateAsOf, fx)
   return {
     value: amount === null ? null : amount / rate,
     currency: fx.base,
     rate,
     basis,
     rateAsOf,
-  };
+  }
 }
 
 /**
@@ -80,8 +88,10 @@ export function deltaContainsFx(
   periodId: string,
   priorPeriodId: string,
   fx: FxTable,
-  basis: FxBasis,
+  basis: FxBasis
 ): boolean {
-  if (currency === fx.base || basis === "constant") return false;
-  return rateFor(currency, periodId, fx) !== rateFor(currency, priorPeriodId, fx);
+  if (currency === fx.base || basis === "constant") return false
+  return (
+    rateFor(currency, periodId, fx) !== rateFor(currency, priorPeriodId, fx)
+  )
 }

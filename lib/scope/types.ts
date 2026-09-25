@@ -8,26 +8,26 @@
  */
 
 export interface ScopeLevel {
-  key: string;
-  label: string;
-  pluralLabel: string;
-  depth: number;
+  key: string
+  label: string
+  pluralLabel: string
+  depth: number
 }
 
 /** A position in the org tree. The array *is* the breadcrumb trail. */
-export type ScopeRef = readonly { level: string; id: string; label: string }[];
+export type ScopeRef = readonly { level: string; id: string; label: string }[]
 
 export interface ScopeChild {
-  id: string;
-  label: string;
-  canDrill: boolean;
+  id: string
+  label: string
+  canDrill: boolean
 }
 
 export interface ScopeNode {
-  ref: ScopeRef;
+  ref: ScopeRef
   /** The level of this node's children, or `null` at a leaf — the matrix renders nothing below. */
-  childLevel: string | null;
-  children: readonly ScopeChild[];
+  childLevel: string | null
+  children: readonly ScopeChild[]
   /** Role-derived hint. The client hides affordances with it; the SERVER still enforces. */
-  canDrill: boolean;
+  canDrill: boolean
 }
