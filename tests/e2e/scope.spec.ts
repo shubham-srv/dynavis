@@ -215,10 +215,11 @@ test.describe("accessibility", () => {
     // The matrix is a roving-tabindex grid: one tab stop, then arrow keys. Tabbing to
     // every one of 30 cells would bury the rest of the page (PLAN §8.8).
     await page.goto("/dashboard/emea/eg")
-    await page.getByRole("table").waitFor()
+    // Every KPI widget also ships a hidden data table, so name the matrix explicitly.
+    await page.getByRole("table", { name: /metrics for/i }).waitFor()
 
     const firstRow = page.locator('[data-cell="0--1"]')
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 90; i++) {
       if (await firstRow.evaluate((node) => node === document.activeElement))
         break
       await page.keyboard.press("Tab")

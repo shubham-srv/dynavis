@@ -82,13 +82,17 @@ export function TrendChart({
     <div className="flex flex-col gap-1">
       <div role="img" aria-label={label} style={{ height }} className="w-full">
         {/*
-          aria-hidden on the plot: a screen reader reading several hundred <path>
-          elements is worse than silence. The widget's summary and table carry the
-          information instead (PLAN §5.3).
+          role="img" above already makes every descendant presentational, so a screen
+          reader never reaches the hundreds of path elements — the widget's summary and
+          table carry the meaning instead (PLAN §5.3). An inner aria-hidden would be
+          redundant AND a violation, since Recharts ships a focusable accessibility
+          layer and aria-hidden must never contain focusable content (axe:
+          aria-hidden-focus). That layer is disabled below for the same reason.
         */}
-        <div aria-hidden className="h-full w-full">
+        <div className="h-full w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
+              accessibilityLayer={false}
               data={data}
               margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
               // Recharts 3 gives the active index rather than the payload, so the

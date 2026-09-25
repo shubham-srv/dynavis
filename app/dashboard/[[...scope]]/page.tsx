@@ -3,9 +3,11 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 
 import { Breadcrumbs } from "@/components/scope/breadcrumbs"
+import { DashboardGrid } from "@/components/dashboard/dashboard-grid"
 import { MatrixSection } from "@/components/scope/matrix-section"
 import { CURRENT_ACADEMIC_YEAR } from "@/lib/data/fixtures/org"
 import { buildMatrix } from "@/lib/matrix/build"
+import { loadWidgetDatum } from "@/lib/data/widget-data"
 import { DEFAULT_WIDGET_IDS, widgetById } from "@/lib/registry/registry"
 import { fixtureLookup } from "@/lib/data/fixtures/lookup"
 import { buildBreadcrumbs, scopeAnnouncement } from "@/lib/scope/breadcrumbs"
@@ -86,6 +88,10 @@ export default async function DashboardPage({
   const crumbs = buildBreadcrumbs(resolved, fixtureLookup)
   const current = resolved.at(-1)!
   const childLevel = node.childLevel ? levelByKey(node.childLevel) : null
+  const period = {
+    kind: "academic-year" as const,
+    id: CURRENT_ACADEMIC_YEAR,
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -108,6 +114,26 @@ export default async function DashboardPage({
         </h1>
       </header>
 
+      <section
+        aria-labelledby="kpis-heading"
+        className="flex min-w-0 flex-col gap-3"
+      >
+        <h2 id="kpis-heading" className="text-sm font-medium">
+          Headline metrics
+        </h2>
+        <DashboardGrid
+          widgets={DEFAULT_WIDGET_IDS.map((widgetId) => ({
+            widgetId,
+            datum: loadWidgetDatum(
+              current.id,
+              widgetById(widgetId).kpiId,
+              period
+            ),
+          }))}
+          scope={resolved}
+        />
+      </section>
+
       {childLevel ? (
         <section
           aria-labelledby="children-heading"
@@ -128,7 +154,7 @@ export default async function DashboardPage({
             matrix={buildMatrix({
               scopeId: current.id,
               kpiIds: DEFAULT_WIDGET_IDS.map((id) => widgetById(id).kpiId),
-              period: { kind: "academic-year", id: CURRENT_ACADEMIC_YEAR },
+              period,
             })}
             scopeIds={ids}
             roleParam={query.role ? String(query.role) : undefined}

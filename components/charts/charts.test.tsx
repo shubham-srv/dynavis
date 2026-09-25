@@ -24,9 +24,11 @@ const history = [
 ]
 
 describe("TrendChart", () => {
-  it("exposes one accessible image and hides the plot internals", () => {
-    // A screen reader reading several hundred path elements is worse than silence;
-    // the widget's table carries the data instead (PLAN §5.3).
+  it("exposes exactly one accessible image, with no focusable content inside", () => {
+    // role="img" makes descendants presentational, so a screen reader never reaches
+    // the hundreds of path elements. Nothing inside may be focusable: Recharts ships
+    // a focusable accessibility layer, and a focus stop that announces nothing is
+    // worse than no stop at all (PLAN §5.3).
     const { container } = render(
       <TrendChart
         points={history}
@@ -39,7 +41,10 @@ describe("TrendChart", () => {
     expect(
       screen.getByRole("img", { name: "Attendance over time" })
     ).toBeInTheDocument()
-    expect(container.querySelector("[aria-hidden='true']")).toBeInTheDocument()
+    expect(screen.getAllByRole("img")).toHaveLength(1)
+    expect(
+      container.querySelectorAll("[tabindex]:not([tabindex='-1'])")
+    ).toHaveLength(0)
   })
 
   it("renders nothing when every point is unmeasured", () => {

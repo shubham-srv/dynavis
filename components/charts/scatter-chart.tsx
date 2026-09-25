@@ -60,7 +60,7 @@ export function ScatterPlot({
 
   return (
     <div role="img" aria-label={label} style={{ height }} className="w-full">
-      <div aria-hidden className="h-full w-full">
+      <div className="h-full w-full">
         <ResponsiveContainer width="100%" height="100%">
           <RechartsScatter margin={{ top: 8, right: 8, bottom: 16, left: 0 }}>
             <CartesianGrid stroke="var(--border)" strokeDasharray="2 4" />

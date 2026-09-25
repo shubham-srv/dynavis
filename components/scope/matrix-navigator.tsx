@@ -141,8 +141,9 @@ function MatrixTable({
       >
         <caption className="sr-only">
           {matrix.columns.length} metrics for {matrix.rows.length}{" "}
-          {matrix.rowLevel ?? "children"}, {matrix.columns[0]?.baselineLabel}.
-          Use the arrow keys to move between cells and Enter to open a row.
+          {pluralise(matrix.rowLevel ?? "child", matrix.rows.length)},{" "}
+          {matrix.columns[0]?.baselineLabel}. Use the arrow keys to move between
+          cells and Enter to open a row.
         </caption>
         <thead>
           <tr>
@@ -309,6 +310,16 @@ function Cell({
       )}
     </td>
   )
+}
+
+/** Crude but sufficient: every level key here is a regular noun except "child". */
+function pluralise(word: string, count: number): string {
+  if (count === 1) return word
+  return word === "child"
+    ? "children"
+    : word === "country"
+      ? "countries"
+      : `${word}s`
 }
 
 function SortIcon({ state }: { state: "ascending" | "descending" | "none" }) {

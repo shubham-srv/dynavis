@@ -76,9 +76,10 @@ export function RankingBar({
       style={{ height: computed }}
       className="w-full"
     >
-      <div aria-hidden className="h-full w-full">
+      <div className="h-full w-full">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
+            accessibilityLayer={false}
             data={rows}
             layout={horizontal ? "vertical" : "horizontal"}
             margin={{ top: 4, right: 44, bottom: 0, left: 0 }}
