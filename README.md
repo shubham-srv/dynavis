@@ -5,6 +5,22 @@ and the architectural base for the client project.
 
 - **[PLAN.md](PLAN.md)** — the implementation plan. Read §0 (the dual mandate) before adding code.
 - **[discussion.md](discussion.md)** — why the plan is the way it is.
+- **[docs/demo-script.md](docs/demo-script.md)** — the five-minute pitch, with the honest answers.
+- **[docs/accessibility-manual-pass.md](docs/accessibility-manual-pass.md)** — the screen-reader
+  script. **Not yet run**; it needs a person and half a day.
+
+## Routes
+
+| Route | What it is |
+|---|---|
+| `/dashboard/<scope…>` | the product. Scope lives in the path, so every view is shareable |
+| `/focus/<widgetId>/<scope…>` | one metric, full viewport, with three breakdown axes |
+| `/before-after` | the pitch page. The "before" panel is an illustration, not the client's board |
+| `/kitchen-sink` | every widget at every variant — the a11y and visual-regression target |
+| `/states` | loading, empty, error, and genuinely missing data |
+
+`/before-after`, `/kitchen-sink` and `/states` live under `app/(demo)` and are deleted at
+client kickoff (PLAN §0).
 
 ## Requirements
 
@@ -42,6 +58,10 @@ npm run lhci             # Lighthouse performance budgets
 
 The browser suites are separate from `npm run ci` because they need a built app and a
 real browser; CI runs them as their own job (`.github/workflows/ci.yml`).
+
+**Kill anything on port 3000 before running `a11y` or `lhci`.** A leftover dev server is
+silently measured instead of the production build, and once produced a confidently wrong
+994KB bundle reading against a 220KB budget.
 
 ### Coverage
 

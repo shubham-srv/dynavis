@@ -69,3 +69,65 @@ test.describe("kitchen sink", () => {
     expect(overflows).toBe(false)
   })
 })
+
+/**
+ * The pages shown to the client. They live under app/(demo) and are deleted at kickoff,
+ * but while they exist they are the first thing anyone sees — a broken pitch page is a
+ * worse outcome than a broken widget.
+ */
+test.describe("demo pages", () => {
+  for (const route of ["/before-after", "/states"]) {
+    test(`${route} renders and is axe-clean`, async ({ page }) => {
+      await page.goto(route)
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
+
+      const results = await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+        .analyze()
+      expect(results.violations.map((violation) => violation.id)).toEqual([])
+    })
+
+    test(`${route} does not scroll sideways`, async ({ page }) => {
+      await page.goto(route)
+      const overflows = await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth >
+          document.documentElement.clientWidth + 1
+      )
+      expect(overflows).toBe(false)
+    })
+  }
+
+  test("the before panel is labelled as an illustration, not their board", async ({
+    page,
+  }) => {
+    // Presenting an invented screen as the client's would be a fabricated artefact in
+    // the one place it would be most persuasive and most wrong.
+    await page.goto("/before-after")
+    await expect(
+      page.getByText(/not.*the client's actual board/i)
+    ).toBeVisible()
+  })
+
+  test("states distinguishes empty from error from not-measured", async ({
+    page,
+  }) => {
+    await page.goto("/states")
+    // Next ships its own role="alert" route announcer, so scope to the page content.
+    await expect(
+      page.getByRole("region", { name: "Shell states" }).getByRole("alert")
+    ).toBeVisible()
+    await expect(
+      page
+        .getByRole("region", { name: "Shell states" })
+        .getByText("No data recorded for this period.")
+    ).toBeVisible()
+    // The real sparse widgets say "not measured" rather than showing a zero.
+    await expect(
+      page
+        .getByRole("region", { name: "Genuinely missing data" })
+        .getByText(/not measured this period/i)
+        .first()
+    ).toBeVisible()
+  })
+})

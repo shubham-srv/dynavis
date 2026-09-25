@@ -125,7 +125,8 @@ export function buildMatrix({
         peerBandLabel: child.meta?.peerBand,
       })
 
-      const baseValue = baseline.kind === "none" ? null : (baseline.value ?? null)
+      const baseValue =
+        baseline.kind === "none" ? null : (baseline.value ?? null)
 
       return {
         value,
@@ -200,7 +201,8 @@ function noteFor(
   value: number | null
 ): string | undefined {
   if (value !== null) return undefined
-  if (unreportedFor(nodeId).includes(kpiId)) return "Not reported in this country"
+  if (unreportedFor(nodeId).includes(kpiId))
+    return "Not reported in this country"
   const node = findNode(nodeId)
   if (node?.meta && !node.meta.hasSeniorYears) return "No senior year groups"
   if (node?.meta?.openedAy) return "Opened this academic year"

@@ -1302,14 +1302,27 @@ phase produces, and a person still has to execute it. Budget half a day.
 which Next cannot express: an optional catch-all must be the final segment. Shipped as
 `focus/[widgetId]/[[...scope]]`, which keeps both the widget and the full scope in the URL.
 
-### Phase 9 — Demo polish (1.5d)
+### Phase 9 — Demo polish ✅ COMPLETE (2026-09-26)
 
 - **Narrative fixture data** — the numbers must tell a story a CFO would react to. One underperforming region, one school that turned around, one KPI where the group is quietly losing ground. Random noise demos badly.
 - Empty / loading / error / not-measured states, because the client will click into them.
 - README: run instructions, architecture diagram, the 5-minute demo script.
 - **The before/after page** — cluttered original vs. revamp. This is what wins the pitch.
 
-**Exit:** a dry run on a real phone over a real network, completed without apology.
+**Exit: partially met — one item needs a human.**
+`/before-after`, `/states` and `docs/demo-script.md` are done, narrative fixture data was
+already in place from Phase 1 (Egypt's collection sliding, Pennine Valley's turnaround,
+the north star quietly falling), and all four gates are green over two consecutive runs.
+
+**The dry run on a real phone has not happened** — it needs a device and a person. The
+script is written for it and step 4 is the mobile moment. Do it before the pitch, not
+during.
+
+The "before" panel is an **illustrative reconstruction**, labelled as such on screen and
+in the script's opening line. Nobody on this project has seen the client's actual board;
+presenting an invented screen as theirs would be a fabricated artefact in the one place it
+would be most persuasive and most wrong. Swap in a real screenshot if one becomes
+available.
 
 ---
 

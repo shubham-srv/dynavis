@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
 import { ContainerSizeProvider } from "@/components/dashboard/container-size"
 import { RankingWidget } from "@/components/widgets/ranking-widget"
@@ -15,14 +15,26 @@ const period = { kind: "academic-year", id: CURRENT_ACADEMIC_YEAR } as const
 const scope = resolveScope(["emea"], fixtureLookup)!
 
 /**
- * Chart adapters are next/dynamic'd to keep Recharts out of the first-load bundle, so
- * these assertions wait on a real dynamic import plus the Recharts module graph.
+ * The chart adapters are mocked, and that is the point of this file.
  *
- * Both numbers matter and the query timeout must stay UNDER the test timeout —
- * a findBy that waits longer than Vitest allows the test to live can never succeed.
+ * A widget's job is to *choose* a form for its size; drawing is the adapter's job, tested
+ * in components/charts and in a real browser by Playwright. Asserting the real adapter
+ * here meant waiting on a next/dynamic import plus the Recharts module graph inside
+ * jsdom, which flaked under parallel load — twice. Raising the timeout again would have
+ * been treating the symptom; mocking removes the dependency entirely and makes the
+ * assertion about the widget.
  */
-const LAZY_CHART_TIMEOUT = 8_000
-const LAZY_CHART_TEST_TIMEOUT = 20_000
+vi.mock("@/components/charts/lazy", () => ({
+  TrendChart: ({ label }: { label: string }) => (
+    <div role="img" aria-label={label} data-testid="trend" />
+  ),
+  RankingBar: ({ label }: { label: string }) => (
+    <div role="img" aria-label={label} data-testid="ranking" />
+  ),
+  ScatterPlot: ({ label }: { label: string }) => (
+    <div role="img" aria-label={label} data-testid="scatter" />
+  ),
+}))
 
 const show = (node: React.ReactNode, width = 900) =>
   render(<ContainerSizeProvider width={width}>{node}</ContainerSizeProvider>)
@@ -54,31 +66,13 @@ describe("RankingWidget", () => {
     expect(values).toEqual([...values].sort((a, b) => b - a))
   })
 
-  it(
-    "draws a chart once there is room for one",
-    async () => {
-      // findBy, not getBy: the chart adapter is next/dynamic'd to keep Recharts out of
-      // the first-load bundle, so it resolves a tick later (PLAN §15).
-      show(
-        <RankingWidget
-          datum={datum}
-          kpi={kpi}
-          scope={scope}
-          variant="expanded"
-        />
-      )
-      expect(
-        await screen.findByRole(
-          "img",
-          { name: /by child unit/i },
-          // Generous: this waits on a real dynamic import plus the Recharts module
-          // graph, which exceeds RTL's 1s default on a cold or busy machine.
-          { timeout: LAZY_CHART_TIMEOUT }
-        )
-      ).toBeInTheDocument()
-    },
-    LAZY_CHART_TEST_TIMEOUT
-  )
+  it("hands off to the chart adapter once there is room for one", () => {
+    show(
+      <RankingWidget datum={datum} kpi={kpi} scope={scope} variant="expanded" />
+    )
+    expect(screen.getByTestId("ranking")).toHaveAccessibleName(/by child unit/i)
+    expect(screen.queryByRole("listitem")).not.toBeInTheDocument()
+  })
 
   it("says so plainly when there is nothing below this level", () => {
     const leaf = loadWidgetDatum("sch-dxb-01", "seatUtilisation", period)
@@ -111,22 +105,12 @@ describe("TrendWidget", () => {
     expect(screen.queryByRole("img")).not.toBeInTheDocument()
   })
 
-  it(
-    "draws the trend once the box can carry axes",
-    async () => {
-      show(
-        <TrendWidget datum={datum} kpi={kpi} scope={scope} variant="expanded" />
-      )
-      expect(
-        await screen.findByRole(
-          "img",
-          { name: /over time/i },
-          { timeout: LAZY_CHART_TIMEOUT }
-        )
-      ).toBeInTheDocument()
-    },
-    LAZY_CHART_TEST_TIMEOUT
-  )
+  it("hands off to the trend adapter once the box can carry axes", () => {
+    show(
+      <TrendWidget datum={datum} kpi={kpi} scope={scope} variant="expanded" />
+    )
+    expect(screen.getByTestId("trend")).toHaveAccessibleName(/over time/i)
+  })
 
   it("states what the delta is measured against", () => {
     show(

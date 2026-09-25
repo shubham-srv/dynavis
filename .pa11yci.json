@@ -26,6 +26,9 @@
     "http://localhost:3000/dashboard/emea/uae",
     "http://localhost:3000/dashboard/emea/uae/dubai/sch-dxb-01",
     "http://localhost:3000/dashboard/emea/eg?role=regional-manager",
-    "http://localhost:3000/kitchen-sink"
+    "http://localhost:3000/kitchen-sink",
+    "http://localhost:3000/before-after",
+    "http://localhost:3000/states",
+    "http://localhost:3000/focus/card.contributionMargin/emea"
   ]
 }

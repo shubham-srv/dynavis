@@ -36,7 +36,8 @@ export function Waterfall({
     ...measured.map((step) => Math.abs(step.value)),
     ...measured.map((step) => Math.abs(step.cumulative))
   )
-  const width = (value: number) => `${Math.min((Math.abs(value) / peak) * 100, 100)}%`
+  const width = (value: number) =>
+    `${Math.min((Math.abs(value) / peak) * 100, 100)}%`
 
   const fmt = (value: number) =>
     formatValue(value, { format, precision: 0, currency, compact: true })
@@ -51,7 +52,9 @@ export function Waterfall({
               key={step.label}
               className="grid grid-cols-[9rem_1fr_auto] items-center gap-3 text-sm"
             >
-              <span className="truncate text-muted-foreground">{step.label}</span>
+              <span className="truncate text-muted-foreground">
+                {step.label}
+              </span>
 
               <span className="relative h-5 overflow-hidden rounded bg-muted/50">
                 <span
@@ -86,9 +89,7 @@ export function Waterfall({
 
       <figcaption className="mt-1 flex items-center justify-between gap-3 border-t border-border pt-1 text-sm font-medium">
         <span>Contribution</span>
-        <span className="tabular-nums">
-          {fmt(measured.at(-1)!.cumulative)}
-        </span>
+        <span className="tabular-nums">{fmt(measured.at(-1)!.cumulative)}</span>
       </figcaption>
     </figure>
   )

@@ -88,7 +88,9 @@ describe("buildMatrix — baselines per column", () => {
       baselineMode: "prior-period",
     })
     expect(
-      priorMode.columns.every((column) => column.baselineKind === "prior-period")
+      priorMode.columns.every(
+        (column) => column.baselineKind === "prior-period"
+      )
     ).toBe(true)
   })
 
@@ -116,8 +118,11 @@ describe("buildMatrix — direction and missing data", () => {
     })
     const column = 0
     const values = matrix.cells.map((row) => row[column])
-    const median = (values.find((cell) => cell.baseline.kind === "peer-median")!
-      .baseline as { value: number }).value
+    const median = (
+      values.find((cell) => cell.baseline.kind === "peer-median")!.baseline as {
+        value: number
+      }
+    ).value
 
     for (const cell of values) {
       if (cell.value === null || cell.vsBaseline === null) continue
@@ -199,11 +204,16 @@ describe("sorting", () => {
       period,
     })
     for (const direction of ["asc", "desc"] as const) {
-      const order = sortedRowOrder(matrix, { kpiId: "progressScore", direction })
+      const order = sortedRowOrder(matrix, {
+        kpiId: "progressScore",
+        direction,
+      })
       const values = order.map((index) => matrix.cells[index][0].value)
       const firstNull = values.indexOf(null)
       if (firstNull === -1) continue
-      expect(values.slice(firstNull).every((value) => value === null)).toBe(true)
+      expect(values.slice(firstNull).every((value) => value === null)).toBe(
+        true
+      )
     }
   })
 
