@@ -26,7 +26,35 @@ class NoopIntersectionObserver implements IntersectionObserver {
   }
 }
 
+/**
+ * jsdom (29) implements <dialog> but not showModal()/close().
+ *
+ * The picker uses the native element deliberately — it brings a real focus trap,
+ * Escape-to-close and an inert background that a hand-rolled modal would have to
+ * reimplement worse. This stub only toggles the `open` attribute so the dialog enters
+ * the accessibility tree and can be queried; it does NOT emulate focus trapping or
+ * inertness, and does not try to. Those are verified in a real browser by the
+ * Playwright suite.
+ */
+function installDialogStub(): void {
+  const proto = globalThis.HTMLDialogElement?.prototype
+  if (!proto || typeof proto.showModal === "function") return
+
+  proto.showModal = function showModal(this: HTMLDialogElement) {
+    this.setAttribute("open", "")
+  }
+  proto.show = function show(this: HTMLDialogElement) {
+    this.setAttribute("open", "")
+  }
+  proto.close = function close(this: HTMLDialogElement, returnValue?: string) {
+    this.removeAttribute("open")
+    if (returnValue !== undefined) this.returnValue = returnValue
+    this.dispatchEvent(new Event("close"))
+  }
+}
+
 beforeEach(() => {
+  installDialogStub()
   installResizeObserverMock()
   installMatchMediaMock()
   globalThis.IntersectionObserver =

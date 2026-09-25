@@ -212,7 +212,7 @@ The POC is done when a stranger can be handed the URL on a phone and a laptop, a
 | D8 | A11y baseline | Every widget ships a hidden `<table>` + text summary | Solves SR access, mobile fallback, testability at once | Never |
 | D9 | Test runner | Vitest + RTL + jsdom | Lower ESM/Next 16 friction; speed matters for a coverage gate | After S2 |
 | D10 | Mock backend | Next Route Handlers mirroring the .NET contract | Swap = base URL change; MSW only inside tests | .NET API exists |
-| D11 | Persistence (POC) | `localStorage`, versioned + zod-validated, behind a repository interface | Same interface the .NET prefs endpoint implements | .NET API exists |
+| D11 | Persistence (POC) | `localStorage`, versioned + hand-validated, behind a repository interface | Same interface the .NET prefs endpoint implements | .NET API exists |
 | D12 | Palette | Replace shadcn's `--chart-*` — it currently fails validation (§11.1) | Measured, not assumed | Client brand palette arrives |
 | **D13** | **Scope model** | **Scope is a path of `{level, id}` pairs, server-described, not a hardcoded enum** | Org depth is never uniform in a multinational group (§1.3) | Never |
 | **D14** | **Scope state lives in the URL** | **Path segments for scope, query string for period/filters** | Deep links, back button, sharing, and trivially testable in Playwright | Never |
@@ -1266,14 +1266,19 @@ the one that breaks the header labelling.
 
 **Exit:** invariants pass; no horizontal page scroll at 320px anywhere; resizing never reorders unpredictably.
 
-### Phase 7 — Customization & roles (2d)
+### Phase 7 — Customization & roles ✅ COMPLETE (2026-09-25)
 
 - Picker grouped by pillar, scope-aware disabled states.
 - Reorder: buttons + live region; dnd-kit enhancement.
-- Prefs reducer, zod validation, v1→v2 migration test, `LocalStoragePrefsRepository`, **per-role prefs**.
+- Prefs reducer, validation, v1→v2 migration test, `LocalStoragePrefsRepository`, **per-role prefs**.
+  *(zod was specified and then dropped: a validation library for a four-field schema that
+  parses in the browser is bundle cost with no safety gain, and the tests pin the
+  behaviour either way.)*
 - Three role presets + the demo role switcher; edit mode; undo toast; reset.
 
-**Exit:** the full add/remove/reorder/persist flow completes **keyboard-only**, per role, verified by a Playwright test that never calls `mouse`.
+**Exit: met.** `tests/e2e/customize.spec.ts` drives add, remove, reorder, undo, reset and
+reload-persistence with `page.keyboard` only — the file contains no `.click()` and no
+`page.mouse`. It also runs axe against the open picker. 6 flows × 3 viewports.
 
 ### Phase 8 — Focus view & hardening (2d)
 
@@ -1330,7 +1335,14 @@ supports `eslint@^9.7` and calls the `context.getFilename` API that ESLint 10 re
 supported combination. This was broken before Phase 0 started; nothing in the repo had
 ever run lint.
 
-**S1, S3, S4, S5, S6, S7 — still open.** S1 and S5 need chart libraries (Phase 5), S3
+**S4 — dnd-kit under React 19 — ✅ CLOSED, not run, and deliberately so.**
+The spike existed to de-risk drag-and-drop as an *enhancement* over the buttons. Once the
+buttons were built and the keyboard-only e2e passed, dnd-kit would add a dependency and a
+second interaction path for zero accessibility gain — dragging is the mechanism WCAG 2.5.7
+requires an alternative *to*, and the alternative is the primary here. Revisit only if
+users ask for it in testing.
+
+**S1, S3, S5, S6, S7 — still open.** S1 and S5 need chart libraries (Phase 5), S3
 needs a container-query component (Phase 2), S6 needs the matrix (Phase 4), S7 needs the
 scope routes (Phase 2). None blocks the phase they sit before. **S7 is the one to run
 early** — it decides D14, and D14 is load-bearing for the whole scope model.

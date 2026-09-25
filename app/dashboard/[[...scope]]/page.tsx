@@ -3,12 +3,16 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 
 import { Breadcrumbs } from "@/components/scope/breadcrumbs"
-import { DashboardGrid } from "@/components/dashboard/dashboard-grid"
+import { DashboardCustomizer } from "@/components/dashboard/dashboard-customizer"
 import { MatrixSection } from "@/components/scope/matrix-section"
 import { CURRENT_ACADEMIC_YEAR } from "@/lib/data/fixtures/org"
 import { buildMatrix } from "@/lib/matrix/build"
 import { loadWidgetDatum } from "@/lib/data/widget-data"
-import { DEFAULT_WIDGET_IDS, widgetById } from "@/lib/registry/registry"
+import {
+  DEFAULT_WIDGET_IDS,
+  widgetById,
+  widgetsForLevel,
+} from "@/lib/registry/registry"
 import { fixtureLookup } from "@/lib/data/fixtures/lookup"
 import { buildBreadcrumbs, scopeAnnouncement } from "@/lib/scope/breadcrumbs"
 import { levelByKey } from "@/lib/scope/levels"
@@ -119,18 +123,24 @@ export default async function DashboardPage({
         className="flex min-w-0 flex-col gap-3"
       >
         <h2 id="kpis-heading" className="text-sm font-medium">
-          Headline metrics
+          Your metrics
         </h2>
-        <DashboardGrid
-          widgets={DEFAULT_WIDGET_IDS.map((widgetId) => ({
-            widgetId,
-            datum: loadWidgetDatum(
-              current.id,
-              widgetById(widgetId).kpiId,
-              period
-            ),
-          }))}
+        {/*
+          Data for every widget valid at this level is loaded up front, so adding one
+          from the picker needs no round trip. Cheap against fixtures; the real product
+          batches this into the single POST in PLAN §16.
+        */}
+        <DashboardCustomizer
           scope={resolved}
+          level={current.level}
+          role={role.id}
+          defaults={DEFAULT_WIDGET_IDS}
+          data={Object.fromEntries(
+            widgetsForLevel(current.level).map((widget) => [
+              widget.id,
+              loadWidgetDatum(current.id, widget.kpiId, period),
+            ])
+          )}
         />
       </section>
 
