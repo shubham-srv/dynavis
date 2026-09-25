@@ -65,12 +65,14 @@ export function DashboardGrid({
   onMoveUp,
   onMoveDown,
   onRemove,
+  focusHrefFor,
 }: {
   widgets: readonly GridWidget[]
   scope: ScopeRef
   onMoveUp?: (widgetId: string) => void
   onMoveDown?: (widgetId: string) => void
   onRemove?: (widgetId: string) => void
+  focusHrefFor?: (widgetId: string) => string
 }) {
   if (widgets.length === 0) {
     return (
@@ -112,6 +114,8 @@ export function DashboardGrid({
                     : undefined
                 }
                 onRemove={onRemove ? () => onRemove(widgetId) : undefined}
+                focusHref={focusHrefFor?.(widgetId)}
+                domId={`w-${widgetId}`}
               />
             </ContainerSizeProvider>
           </li>

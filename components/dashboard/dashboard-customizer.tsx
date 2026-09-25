@@ -143,6 +143,13 @@ export function DashboardCustomizer({
       <DashboardGrid
         widgets={widgets}
         scope={scope}
+        focusHrefFor={(widgetId) => {
+          const path = scope
+            .slice(1)
+            .map((step) => step.id)
+            .join("/")
+          return `/focus/${widgetId}${path ? `/${path}` : ""}?role=${role}`
+        }}
         onMoveUp={
           editing
             ? (widgetId) =>

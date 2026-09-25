@@ -165,3 +165,31 @@
     @apply font-sans;
     }
 }
+
+/*
+ * Forced colours (Windows High Contrast and friends).
+ *
+ * The rule of this mode is not to fight it. Two places need explicit handling because a
+ * half-override is worse than either extreme:
+ *
+ * 1. Selected/pressed states pair `bg-primary` with `text-primary-foreground`. The UA
+ *    forces the background to Canvas but leaves the author text colour, giving white on
+ *    white — axe measured 1.04:1. Handing the pair to the system's own selection colours
+ *    keeps them consistent by construction.
+ *
+ * 2. Matrix tints are decorative: the direction glyph and the signed number carry the
+ *    same information (PLAN §8.3). Dropping the tint is strictly better than keeping a
+ *    background the OS did not choose.
+ */
+@media (forced-colors: active) {
+  .bg-primary {
+    background-color: Highlight;
+    color: HighlightText;
+    forced-color-adjust: none;
+  }
+
+  [data-matrix-tint] {
+    background-color: Canvas !important;
+    color: CanvasText;
+  }
+}

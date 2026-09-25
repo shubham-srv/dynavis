@@ -63,6 +63,7 @@ export function KpiCard({ datum, kpi, variant }: WidgetRenderProps) {
               // which is what makes this readable in forced-colors and to CVD viewers.
               !meaningful && "text-muted-foreground"
             )}
+            data-matrix-tint={tint && meaningful ? "" : undefined}
             style={tint && meaningful ? { backgroundColor: tint } : undefined}
           >
             <span aria-hidden>{directionGlyph(vsBaseline)}</span>

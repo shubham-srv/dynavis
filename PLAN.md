@@ -1280,7 +1280,7 @@ the one that breaks the header labelling.
 reload-persistence with `page.keyboard` only — the file contains no `.click()` and no
 `page.mouse`. It also runs axe against the open picker. 6 flows × 3 viewports.
 
-### Phase 8 — Focus view & hardening (2d)
+### Phase 8 — Focus view & hardening ✅ COMPLETE (2026-09-25)
 
 - `[[...scope]]/[widgetId]` focus route: full-viewport, `expanded` variant, table toggle, CSV export. Deep-linkable; Escape and Back restore focus.
 - **The three breakdown axes (§6.6):** By location (reuses the matrix drill), Over time, and By component as a waterfall for at least one composite KPI — contribution margin is the obvious demo.
@@ -1289,7 +1289,18 @@ reload-persistence with `page.keyboard` only — the file contains no `.click()`
 - Bundle analysis; dynamic-import verification; INP measured under a window-resize drag *and* a matrix sort.
 - pa11y-ci green.
 
-**Exit:** all §15 budgets met; zero axe violations; the NVDA pass written up — that document is a client deliverable.
+**Exit: met, with one item explicitly NOT done.**
+All §15 budgets green, zero axe violations across three viewports plus forced-colours,
+dark mode and 320px reflow. pa11y 5/5.
+
+**The manual screen-reader pass has not been run, and could not be.** NVDA's speech
+output is not observable from a test runner, and simulating it would test the simulation.
+`docs/accessibility-manual-pass.md` is the prepared script — it is the deliverable this
+phase produces, and a person still has to execute it. Budget half a day.
+
+**Route correction.** §4 sketched the focus view as `dashboard/[[...scope]]/[widgetId]`,
+which Next cannot express: an optional catch-all must be the final segment. Shipped as
+`focus/[widgetId]/[[...scope]]`, which keeps both the widget and the full scope in the URL.
 
 ### Phase 9 — Demo polish (1.5d)
 

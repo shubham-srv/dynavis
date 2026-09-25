@@ -24,7 +24,8 @@ export function WidgetRenderer({
   onMoveUp,
   onMoveDown,
   onRemove,
-  onExpand,
+  focusHref,
+  domId,
 }: {
   widgetId: string
   datum: WidgetDatum
@@ -35,7 +36,13 @@ export function WidgetRenderer({
   onMoveUp?: () => void
   onMoveDown?: () => void
   onRemove?: () => void
-  onExpand?: () => void
+  focusHref?: string
+  /**
+   * DOM id for fragment-return. Supplied by the caller rather than derived, because a
+   * page may render the same widget more than once — the kitchen sink renders each one
+   * at four variants, and deriving it there produced duplicate ids (WCAG 4.1.1).
+   */
+  domId?: string
 }) {
   const widget = widgetById(widgetId)
   const kpi = kpiById(widget.kpiId)
@@ -52,7 +59,8 @@ export function WidgetRenderer({
       onMoveUp={onMoveUp}
       onMoveDown={onMoveDown}
       onRemove={onRemove}
-      onExpand={onExpand}
+      focusHref={focusHref}
+      domId={domId}
     >
       {widget.render({ datum, kpi, scope, variant })}
     </WidgetShell>

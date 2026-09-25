@@ -281,6 +281,7 @@ function Cell({
                 : `${deltaText} ${column.baselineLabel}`
             }`
       }
+      data-matrix-tint={tint ? "" : undefined}
       style={tint ? { backgroundColor: tint } : undefined}
       className="px-2 py-1.5 text-right align-middle tabular-nums focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
     >

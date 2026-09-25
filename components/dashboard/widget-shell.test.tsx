@@ -148,7 +148,7 @@ describe("WidgetShell", () => {
       <WidgetShell
         title="Seat utilisation"
         onRemove={vi.fn()}
-        onExpand={vi.fn()}
+        focusHref="/focus/card.seatUtilisation"
       />
     )
     expect(
@@ -156,9 +156,10 @@ describe("WidgetShell", () => {
         name: "Remove Seat utilisation from dashboard",
       })
     ).toBeInTheDocument()
+    // A link, not a button: middle-click and open-in-new-tab must work.
     expect(
-      screen.getByRole("button", { name: "Open Seat utilisation in full view" })
-    ).toBeInTheDocument()
+      screen.getByRole("link", { name: "Open Seat utilisation in full view" })
+    ).toHaveAttribute("href", "/focus/card.seatUtilisation")
   })
 })
 

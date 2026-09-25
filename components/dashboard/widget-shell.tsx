@@ -7,6 +7,7 @@ import {
   TriangleAlert,
   X,
 } from "lucide-react"
+import Link from "next/link"
 import type { ReactNode } from "react"
 
 import { VisuallyHidden } from "@/components/a11y/visually-hidden"
@@ -40,7 +41,10 @@ export interface WidgetShellProps {
   onMoveUp?: () => void
   onMoveDown?: () => void
   onRemove?: () => void
-  onExpand?: () => void
+  /** Full-view link. A link, not a button, so middle-click and new-tab work. */
+  focusHref?: string
+  /** DOM id, so returning from the full view can move focus back here (PLAN §6.5). */
+  domId?: string
   position?: { index: number; total: number }
 
   /** Accessible equivalents of whatever the body draws. */
@@ -61,7 +65,8 @@ export function WidgetShell({
   onMoveUp,
   onMoveDown,
   onRemove,
-  onExpand,
+  focusHref,
+  domId,
   position,
   summary,
   table,
@@ -75,6 +80,10 @@ export function WidgetShell({
 
   return (
     <section
+      id={domId}
+      // Focusable only as a fragment target: returning from the full view lands the
+      // keyboard here rather than at the top of the document.
+      tabIndex={domId ? -1 : undefined}
       aria-label={title}
       className={cn(
         // `relative` is load-bearing, not cosmetic: VisuallyHidden uses position:absolute,
@@ -121,10 +130,14 @@ export function WidgetShell({
               <ChevronDown aria-hidden className="size-4" />
             </IconButton>
           ) : null}
-          {onExpand ? (
-            <IconButton label={`Open ${title} in full view`} onClick={onExpand}>
+          {focusHref ? (
+            <Link
+              href={focusHref}
+              aria-label={`Open ${title} in full view`}
+              className="inline-flex size-11 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            >
               <Maximize2 aria-hidden className="size-4" />
-            </IconButton>
+            </Link>
           ) : null}
           {onRemove ? (
             <IconButton
