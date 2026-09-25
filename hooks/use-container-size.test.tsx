@@ -44,21 +44,42 @@ describe("useContainerSize", () => {
     expect(screen.getByTestId("measured")).toHaveTextContent("false")
   })
 
-  it("publishes a quantised width once the debounce elapses", () => {
+  it("publishes the FIRST measurement immediately, quantised", () => {
+    // Not debounced on purpose: debouncing the first measurement means rendering a
+    // placeholder and then swapping it, which is a layout shift. Lighthouse CLS
+    // caught exactly that (PLAN §15).
     render(<Probe />)
     act(() => {
       resizeTo(screen.getByTestId("box"), { width: 803, height: 200 })
     })
-    expect(width()).toBe(0) // still debouncing
+    expect(width()).toBe(800)
+    expect(screen.getByTestId("measured")).toHaveTextContent("true")
+  })
+
+  it("debounces every measurement after the first", () => {
+    render(<Probe />)
+    const box = screen.getByTestId("box")
+    act(() => {
+      resizeTo(box, { width: 400, height: 200 })
+    })
+    expect(width()).toBe(400)
+
+    act(() => {
+      resizeTo(box, { width: 803, height: 200 })
+    })
+    expect(width()).toBe(400) // still debouncing
 
     act(() => void vi.advanceTimersByTime(100))
     expect(width()).toBe(800)
-    expect(screen.getByTestId("measured")).toHaveTextContent("true")
   })
 
   it("coalesces a burst of resizes into a single update", () => {
     render(<Probe />)
     const box = screen.getByTestId("box")
+    // Settle the immediate first measurement before timing the storm.
+    act(() => {
+      resizeTo(box, { width: 700, height: 200 })
+    })
     const before = commits()
 
     act(() => {

@@ -298,7 +298,7 @@ function Cell({
                 "text-[11px]",
                 // Muted ink is legible on the card surface (4.67:1) and NOT on a tint
                 // (1.76:1). Measured, not assumed — axe caught this one.
-                tint ? "text-foreground/90" : "text-muted-foreground"
+                tint ? "text-foreground" : "text-muted-foreground"
               )}
             >
               {/* The glyph is the CVD / forced-colors / deadband channel. Mandatory. */}

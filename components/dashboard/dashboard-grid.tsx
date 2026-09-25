@@ -1,30 +1,62 @@
 "use client"
 
-import { useMemo } from "react"
-
-import {
-  ContainerSizeProvider,
-  useContainerWidth,
-} from "@/components/dashboard/container-size"
+import { ContainerSizeProvider } from "@/components/dashboard/container-size"
 import { WidgetRenderer } from "@/components/dashboard/widget-renderer"
 import type { WidgetDatum } from "@/lib/data/widget-data"
-import { pack } from "@/lib/layout/pack"
-import { breakpointFor, GRID_COLUMNS, ROW_UNIT } from "@/lib/layout/tokens"
+import type { SizeToken } from "@/lib/layout/tokens"
 import { widgetById } from "@/lib/registry/registry"
 import type { ScopeRef } from "@/lib/scope/types"
-import { resolveVariant, type Variant } from "@/lib/viz/variants"
 
 /**
  * The dashboard grid.
  *
- * Renders the solver's output **in its order**, so the DOM matches what is on screen
- * and tab order matches reading order (PLAN D4). `grid-auto-flow: dense` would do the
- * packing in CSS for free and break exactly that, which is why it is not used.
+ * **Layout is pure CSS; JavaScript only picks each widget's variant.**
+ *
+ * It began as a JS-measured layout driven by `pack()`, and that cost 0.1238 CLS against
+ * a 0.05 budget: measuring before you can place anything means rendering a placeholder
+ * and then swapping it, and no amount of reserving space or measuring earlier removes
+ * the swap. Grid columns are a *viewport* concern, and CSS already knows the viewport
+ * before the first paint — so the layout is correct with no measurement, no skeleton and
+ * no shift.
+ *
+ * What was given up: `pack()`'s gap-filling lookahead. CSS auto-placement is exactly
+ * equivalent to `pack(..., { lookahead: 0 })` — items flow in document order, so
+ * occasional gaps appear where a wide widget follows a narrow one. That is a fair trade
+ * for zero CLS, and it makes DOM order equal visual order equal the user's saved order
+ * at *every* breakpoint, which the JS version could only guarantee at one (PLAN D4).
+ *
+ * `pack()` is retained and tested for the banded layout in PLAN §9, which needs real
+ * lookahead within a band. Auto-placement is deliberately NOT `dense`: dense reorders
+ * visually without reordering the DOM, which is the accessibility failure this whole
+ * design exists to avoid.
  */
 
 export interface GridWidget {
   widgetId: string
   datum: WidgetDatum
+}
+
+/**
+ * Column spans per size token, as static class strings.
+ *
+ * These mirror `COL_SPAN` in lib/layout/tokens.ts and must stay in step with it —
+ * asserted in dashboard-grid.test.tsx. Tailwind needs literal strings, so they cannot
+ * be generated from the token table at runtime.
+ *
+ * Tailwind's `md` (768px) and `xl` (1280px) match BREAKPOINTS.tablet and .desktop.
+ */
+const SPAN_CLASS: Record<SizeToken, string> = {
+  sm: "col-span-1 md:col-span-2 xl:col-span-3",
+  md: "col-span-1 md:col-span-3 xl:col-span-6",
+  lg: "col-span-1 md:col-span-6 xl:col-span-8",
+  xl: "col-span-1 md:col-span-6 xl:col-span-12",
+}
+
+const ROW_CLASS: Record<number, string> = {
+  1: "row-span-1",
+  2: "row-span-2",
+  3: "row-span-3",
+  4: "row-span-4",
 }
 
 export function DashboardGrid({
@@ -40,56 +72,6 @@ export function DashboardGrid({
   onMoveDown?: (widgetId: string) => void
   onRemove?: (widgetId: string) => void
 }) {
-  return (
-    <ContainerSizeProvider className="min-w-0">
-      <GridBody
-        widgets={widgets}
-        scope={scope}
-        onMoveUp={onMoveUp}
-        onMoveDown={onMoveDown}
-        onRemove={onRemove}
-      />
-    </ContainerSizeProvider>
-  )
-}
-
-function GridBody({
-  widgets,
-  scope,
-  onMoveUp,
-  onMoveDown,
-  onRemove,
-}: {
-  widgets: readonly GridWidget[]
-  scope: ScopeRef
-  onMoveUp?: (widgetId: string) => void
-  onMoveDown?: (widgetId: string) => void
-  onRemove?: (widgetId: string) => void
-}) {
-  const { width, measured } = useContainerWidth()
-  const breakpoint = breakpointFor(width)
-
-  const packed = useMemo(
-    () =>
-      pack(
-        widgets.map(({ widgetId }) => {
-          const widget = widgetById(widgetId)
-          return {
-            id: widgetId,
-            size: widget.size[breakpoint].token,
-            rowSpan: widget.size[breakpoint].rowSpan,
-          }
-        }),
-        breakpoint
-      ),
-    [widgets, breakpoint]
-  )
-
-  const byId = useMemo(
-    () => new Map(widgets.map((entry) => [entry.widgetId, entry])),
-    [widgets]
-  )
-
   if (widgets.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
@@ -98,61 +80,38 @@ function GridBody({
     )
   }
 
-  // Before the first measurement, render nothing rather than laying a 12-column grid
-  // into a phone for a frame.
-  if (!measured) {
-    return (
-      <div className="h-64 animate-pulse rounded-lg bg-muted" aria-hidden />
-    )
-  }
-
   return (
-    <ul
-      className="grid list-none gap-3"
-      style={{
-        gridTemplateColumns: `repeat(${GRID_COLUMNS[breakpoint]}, minmax(0, 1fr))`,
-        gridAutoRows: `${ROW_UNIT}px`,
-      }}
-    >
-      {packed.map((item, index) => {
-        const entry = byId.get(item.id)
-        if (!entry) return null
-        const widget = widgetById(item.id)
-        const variant = variantFor(
-          item.colSpan,
-          breakpoint,
-          width,
-          widget.variants
-        )
+    <ul className="grid list-none auto-rows-[88px] grid-cols-1 gap-3 md:grid-cols-6 xl:grid-cols-12">
+      {widgets.map(({ widgetId, datum }, index) => {
+        const widget = widgetById(widgetId)
+        // The desktop token drives the class set; the class set itself carries the
+        // mobile and tablet spans.
+        const { token, rowSpan } = widget.size.desktop
 
         return (
           <li
-            key={item.id}
-            // minmax(0, 1fr) on the track plus min-w-0 here is load-bearing: without
-            // both, chart SVGs and wide tables refuse to shrink and the page gains a
-            // horizontal scrollbar (PLAN §9).
-            className="min-w-0"
-            style={{
-              gridColumn: `${item.colStart} / span ${item.colSpan}`,
-              gridRow: `span ${item.rowSpan}`,
-            }}
+            key={widgetId}
+            // min-w-0 here plus minmax(0, 1fr) from grid-cols-* is load-bearing:
+            // without both, chart SVGs and wide tables refuse to shrink and the page
+            // gains a horizontal scrollbar (PLAN §9).
+            className={`min-w-0 ${SPAN_CLASS[token]} ${ROW_CLASS[rowSpan] ?? "row-span-2"}`}
           >
+            {/* Each widget measures its own cell to choose its variant (PLAN D2). */}
             <ContainerSizeProvider className="h-full min-w-0">
               <WidgetRenderer
-                widgetId={item.id}
-                datum={entry.datum}
+                widgetId={widgetId}
+                datum={datum}
                 scope={scope}
-                variant={variant}
-                position={{ index, total: packed.length }}
+                position={{ index, total: widgets.length }}
                 onMoveUp={
-                  onMoveUp && index > 0 ? () => onMoveUp(item.id) : undefined
+                  onMoveUp && index > 0 ? () => onMoveUp(widgetId) : undefined
                 }
                 onMoveDown={
-                  onMoveDown && index < packed.length - 1
-                    ? () => onMoveDown(item.id)
+                  onMoveDown && index < widgets.length - 1
+                    ? () => onMoveDown(widgetId)
                     : undefined
                 }
-                onRemove={onRemove ? () => onRemove(item.id) : undefined}
+                onRemove={onRemove ? () => onRemove(widgetId) : undefined}
               />
             </ContainerSizeProvider>
           </li>
@@ -162,19 +121,4 @@ function GridBody({
   )
 }
 
-/**
- * The variant a cell will get, estimated from its column span.
- *
- * An estimate, because the widget's own provider measures the truth a frame later.
- * Estimating from the span rather than defaulting to `micro` avoids a visible flash of
- * the wrong form on first paint.
- */
-function variantFor(
-  span: number,
-  breakpoint: ReturnType<typeof breakpointFor>,
-  containerWidth: number,
-  supported: readonly Variant[]
-): Variant {
-  const fraction = span / GRID_COLUMNS[breakpoint]
-  return resolveVariant(Math.floor(containerWidth * fraction), supported)
-}
+export { SPAN_CLASS }

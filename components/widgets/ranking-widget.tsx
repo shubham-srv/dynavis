@@ -49,14 +49,21 @@ export function RankingWidget({ datum, kpi, variant }: WidgetRenderProps) {
     )
   }
 
+  // Same height the adapter computes from its row count, reserved up front so the lazy
+  // chunk's arrival does not shift the page.
+  const reserved = Math.max(rows.length * 28 + 16, 80)
+
   return (
-    <RankingBar
-      data={rows}
-      variant={variant}
-      format={kpi.format}
-      precision={kpi.precision}
-      currency={kpi.money ? "USD" : undefined}
-      label={`${kpi.label} by child unit`}
-    />
+    <div style={{ height: reserved }}>
+      <RankingBar
+        data={rows}
+        variant={variant}
+        format={kpi.format}
+        precision={kpi.precision}
+        currency={kpi.money ? "USD" : undefined}
+        label={`${kpi.label} by child unit`}
+        height={reserved}
+      />
+    </div>
   )
 }

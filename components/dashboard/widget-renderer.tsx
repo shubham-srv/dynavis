@@ -1,5 +1,6 @@
 "use client"
 
+import { useVariant } from "@/components/dashboard/container-size"
 import { WidgetShell } from "@/components/dashboard/widget-shell"
 import type { WidgetDatum } from "@/lib/data/widget-data"
 import { kpiById } from "@/lib/kpi/catalog"
@@ -18,7 +19,7 @@ export function WidgetRenderer({
   widgetId,
   datum,
   scope,
-  variant,
+  variant: explicitVariant,
   position,
   onMoveUp,
   onMoveDown,
@@ -28,7 +29,8 @@ export function WidgetRenderer({
   widgetId: string
   datum: WidgetDatum
   scope: ScopeRef
-  variant: Variant
+  /** Omit to let the widget measure its own cell (PLAN D2). */
+  variant?: Variant
   position?: { index: number; total: number }
   onMoveUp?: () => void
   onMoveDown?: () => void
@@ -37,6 +39,8 @@ export function WidgetRenderer({
 }) {
   const widget = widgetById(widgetId)
   const kpi = kpiById(widget.kpiId)
+  const measuredVariant = useVariant(widget.variants)
+  const variant = explicitVariant ?? measuredVariant
 
   return (
     <WidgetShell

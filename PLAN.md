@@ -998,6 +998,22 @@ belongs in a pitch demo, and all of which must be scoped and priced separately. 
 - **axe-core via Playwright** for the dev loop — better React/ARIA coverage, and reaches interaction states pa11y can't (picker open, mid-reorder, sorted matrix).
 - Run both. pa11y satisfies the contract; axe finds the bugs.
 
+**One rule is ignored in pa11y, and contrast is still the most strictly gated thing in
+the build.** pa11y's axe runner reports axe's `incomplete` results — "I cannot determine
+the background" — as errors. Measured on `/dashboard`: `@axe-core/playwright` reports
+**0 violations, 1 incomplete (color-contrast)** where pa11y reports **20 errors**,
+including near-black text on white. axe cannot resolve a single background for a matrix
+cell whose tint arrives as an inline custom property. Contrast is instead gated by
+`npm run validate:palette`, which measures every token pair numerically in both modes,
+and by the zero-violations assertion in Playwright. The justification is written into
+`.pa11yci.json` beside the ignore so it cannot quietly become a habit.
+
+**Colour tokens are hex, not `oklch()`.** Tailwind v4's `oklch()` authoring resolves to
+computed `lab()`/`oklab()` values, which axe 4.11 cannot evaluate at all — it flagged
+even black-on-white. Converting the tokens to hex fixed the tooling rather than
+suppressing it, and removed ~90% of the pa11y findings before the ignore above was
+needed for the remainder.
+
 ### What automation cannot catch — budget one manual day
 
 | Risk | Mitigation |

@@ -34,8 +34,10 @@ export function useContainerSize<T extends HTMLElement = HTMLDivElement>(
   const [size, setSize] = useState<ContainerSize>(UNMEASURED)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const observer = useRef<ResizeObserver | null>(null)
+  const hasMeasured = useRef(false)
 
   const apply = useCallback((width: number, height: number) => {
+    hasMeasured.current = true
     const next = {
       width: quantiseWidth(width),
       height: Math.round(height),
@@ -58,6 +60,7 @@ export function useContainerSize<T extends HTMLElement = HTMLDivElement>(
 
       if (!node) {
         observer.current = null
+        hasMeasured.current = false
         return
       }
 
@@ -71,7 +74,11 @@ export function useContainerSize<T extends HTMLElement = HTMLDivElement>(
         const width = box ? box.inlineSize : entry.contentRect.width
         const height = box ? box.blockSize : entry.contentRect.height
 
-        if (debounceMs <= 0) {
+        // The FIRST measurement is applied immediately. Debouncing it too means the
+        // component renders a placeholder and then swaps, which is a layout shift —
+        // and CLS caught exactly that. The debounce exists for the resize *storm*
+        // during a window drag, not for finding out how big we are (PLAN §15).
+        if (debounceMs <= 0 || !hasMeasured.current) {
           apply(width, height)
           return
         }
@@ -80,6 +87,15 @@ export function useContainerSize<T extends HTMLElement = HTMLDivElement>(
       })
 
       observer.current.observe(node)
+
+      // Measure synchronously, here in the ref callback, which runs during commit and
+      // therefore before the browser paints. ResizeObserver's first callback lands
+      // *after* a paint, so relying on it alone shows a placeholder for one frame and
+      // then swaps — a layout shift that Lighthouse CLS flagged at 0.12 against a 0.05
+      // budget (PLAN §15). In jsdom this reads 0 and is skipped, so tests still drive
+      // sizing explicitly through the mock.
+      const rect = node.getBoundingClientRect()
+      if (rect.width > 0) apply(rect.width, rect.height)
     },
     [apply, debounceMs]
   )

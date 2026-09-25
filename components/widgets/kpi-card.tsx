@@ -79,17 +79,25 @@ export function KpiCard({ datum, kpi, variant }: WidgetRenderProps) {
         />
       ) : null}
 
+      {/*
+        Fixed box around a lazily-loaded chart. The adapter is next/dynamic'd with
+        ssr:false to keep Recharts out of the first-load bundle, so it renders nothing
+        until its chunk arrives — without a reserved height that arrival pushes the
+        page down. Lighthouse measured CLS 0.12 against a 0.05 budget (PLAN §15).
+      */}
       {showTrend ? (
-        <TrendChart
-          points={history}
-          variant={variant}
-          format={kpi.format}
-          precision={kpi.precision}
-          currency={kpi.money ? "USD" : undefined}
-          target={kpi.target}
-          height={120}
-          label={`${kpi.label} over time`}
-        />
+        <div style={{ height: 120 }}>
+          <TrendChart
+            points={history}
+            variant={variant}
+            format={kpi.format}
+            precision={kpi.precision}
+            currency={kpi.money ? "USD" : undefined}
+            target={kpi.target}
+            height={120}
+            label={`${kpi.label} over time`}
+          />
+        </div>
       ) : null}
 
       <p className="text-xs text-muted-foreground">

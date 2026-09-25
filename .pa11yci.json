@@ -2,10 +2,24 @@
   "defaults": {
     "standard": "WCAG2AA",
     "timeout": 40000,
-    "wait": 500,
+    "wait": 1000,
     "chromeLaunchConfig": { "args": ["--no-sandbox", "--disable-dev-shm-usage"] },
     "hideElements": "#__next-build-watcher, nextjs-portal",
-    "runners": ["axe", "htmlcs"]
+    "runners": ["axe", "htmlcs"],
+    "_comment_ignore": [
+      "color-contrast is ignored HERE ONLY, and contrast is not going unchecked.",
+      "axe classifies these as `incomplete` — 'I cannot determine the background' —",
+      "not as violations; pa11y's axe runner reports incomplete results as errors.",
+      "Verified on /dashboard: @axe-core/playwright reports violations=0,",
+      "incomplete=1 (color-contrast) where pa11y reports 20 errors, including",
+      "near-black text on white. axe cannot resolve a single background for cells",
+      "whose tint comes from an inline custom property.",
+      "Contrast is gated more strictly in two places: `npm run validate:palette`",
+      "measures every token pair numerically in both light and dark (the matrix",
+      "tints sit at 6.3-10.6:1 against a 4.5 floor), and tests/e2e asserts zero axe",
+      "violations on every route. See PLAN §13."
+    ],
+    "ignore": ["color-contrast"]
   },
   "urls": [
     "http://localhost:3000/dashboard",

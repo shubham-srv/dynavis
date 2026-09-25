@@ -29,7 +29,9 @@ describe("MatrixNavigator — wide", () => {
   it("is a real table with row and column headers", () => {
     wide()
     expect(screen.getByRole("table")).toBeInTheDocument()
-    expect(screen.getByRole("columnheader", { name: /Name/ })).toBeInTheDocument()
+    expect(
+      screen.getByRole("columnheader", { name: /Name/ })
+    ).toBeInTheDocument()
     expect(
       screen.getByRole("rowheader", { name: /United Arab Emirates/ })
     ).toBeInTheDocument()
@@ -68,12 +70,14 @@ describe("MatrixNavigator — wide", () => {
   it("marks only one column as sorted at a time", async () => {
     wide()
     await userEvent.click(
-      within(screen.getByRole("columnheader", { name: /Seats/ })).getByRole("button")
-    )
-    await userEvent.click(
-      within(screen.getByRole("columnheader", { name: /Attainment/ })).getByRole(
+      within(screen.getByRole("columnheader", { name: /Seats/ })).getByRole(
         "button"
       )
+    )
+    await userEvent.click(
+      within(
+        screen.getByRole("columnheader", { name: /Attainment/ })
+      ).getByRole("button")
     )
     const sorted = screen
       .getAllByRole("columnheader")
@@ -104,7 +108,9 @@ describe("MatrixNavigator — wide", () => {
     render(
       <MatrixNavigator matrix={sparse} variant="expanded" hrefFor={hrefFor} />
     )
-    expect(screen.getAllByText(/not reported in this country/i).length).toBeGreaterThan(0)
+    expect(
+      screen.getAllByText(/not reported in this country/i).length
+    ).toBeGreaterThan(0)
   })
 
   it("shows fewer columns at the standard variant", () => {
@@ -112,9 +118,7 @@ describe("MatrixNavigator — wide", () => {
       <MatrixNavigator matrix={matrix} variant="standard" hrefFor={hrefFor} />
     )
     // Name + at most 4 metric columns.
-    expect(
-      container.querySelectorAll("thead th").length
-    ).toBeLessThanOrEqual(5)
+    expect(container.querySelectorAll("thead th").length).toBeLessThanOrEqual(5)
   })
 
   describe("keyboard grid", () => {
@@ -165,7 +169,9 @@ describe("MatrixNavigator — narrow", () => {
       <MatrixNavigator matrix={matrix} variant="compact" hrefFor={hrefFor} />
     )
     expect(screen.queryByRole("table")).not.toBeInTheDocument()
-    expect(screen.getByRole("combobox", { name: /ranked by/i })).toBeInTheDocument()
+    expect(
+      screen.getByRole("combobox", { name: /ranked by/i })
+    ).toBeInTheDocument()
     expect(screen.getAllByRole("link").length).toBe(matrix.rows.length)
   })
 
@@ -184,9 +190,7 @@ describe("MatrixNavigator — narrow", () => {
       kpiIds: ["attainmentRate"],
       period,
     })
-    render(
-      <MatrixNavigator matrix={dubai} variant="micro" hrefFor={hrefFor} />
-    )
+    render(<MatrixNavigator matrix={dubai} variant="micro" hrefFor={hrefFor} />)
     expect(screen.getByRole("heading", { name: "Top" })).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: "Bottom" })).toBeInTheDocument()
   })

@@ -218,7 +218,9 @@ test.describe("accessibility", () => {
     // Every KPI widget also ships a hidden data table, so name the matrix explicitly.
     await page.getByRole("table", { name: /metrics for/i }).waitFor()
 
-    const firstRow = page.locator('[data-cell="0--1"]')
+    // All three matrix forms are in the DOM with CSS choosing one (see
+    // MatrixSection), so match only the visible table's first cell.
+    const firstRow = page.locator('[data-cell="0--1"]:visible')
     for (let i = 0; i < 90; i++) {
       if (await firstRow.evaluate((node) => node === document.activeElement))
         break

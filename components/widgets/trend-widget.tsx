@@ -47,16 +47,19 @@ export function TrendWidget({ datum, kpi, variant }: WidgetRenderProps) {
           className="h-10 w-full"
         />
       ) : (
-        <TrendChart
-          points={datum.history}
-          variant={variant}
-          format={kpi.format}
-          precision={kpi.precision}
-          currency={kpi.money ? "USD" : undefined}
-          target={kpi.target}
-          height={variant === "expanded" ? 180 : 130}
-          label={`${kpi.label} over time`}
-        />
+        // Reserved box: the adapter is lazy, so its arrival must not move the page.
+        <div style={{ height: variant === "expanded" ? 180 : 130 }}>
+          <TrendChart
+            points={datum.history}
+            variant={variant}
+            format={kpi.format}
+            precision={kpi.precision}
+            currency={kpi.money ? "USD" : undefined}
+            target={kpi.target}
+            height={variant === "expanded" ? 180 : 130}
+            label={`${kpi.label} over time`}
+          />
+        </div>
       )}
     </div>
   )
