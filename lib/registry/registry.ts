@@ -2,12 +2,14 @@ import { envelopeToTable, summariseSeries } from "@/lib/a11y/table"
 import { baselineLabel } from "@/lib/baseline/resolve"
 import type { DataEnvelope } from "@/lib/data/envelope"
 import type { WidgetDatum } from "@/lib/data/widget-data"
-import { KPIS, selectableKpis } from "@/lib/kpi/catalog"
+import { KPIS, kpiById, selectableKpis } from "@/lib/kpi/catalog"
 import type { KpiDefinition } from "@/lib/kpi/types"
 import type { Breakpoint, SizeToken } from "@/lib/layout/tokens"
 import type { ScopeRef } from "@/lib/scope/types"
 import type { Variant } from "@/lib/viz/variants"
 import { KpiCard } from "@/components/widgets/kpi-card"
+import { RankingWidget } from "@/components/widgets/ranking-widget"
+import { TrendWidget } from "@/components/widgets/trend-widget"
 
 import type { Breakdown, WidgetDefinition } from "./types"
 
@@ -110,8 +112,46 @@ function cardWidget(kpi: KpiDefinition): WidgetDefinition {
   }
 }
 
-export const WIDGETS: readonly WidgetDefinition[] =
-  selectableKpis().map(cardWidget)
+const WIDE_SIZE: Record<Breakpoint, { token: SizeToken; rowSpan: number }> = {
+  mobile: { token: "sm", rowSpan: 3 },
+  tablet: { token: "md", rowSpan: 3 },
+  desktop: { token: "md", rowSpan: 3 },
+}
+
+/**
+ * Dedicated chart widgets, where the chart *is* the point.
+ *
+ * Deliberately few. One widget per KPI plus a handful of charts keeps the picker
+ * honest; a trend and a ranking variant of all eighteen KPIs would recreate exactly
+ * the clutter this project exists to remove (PLAN §1.1).
+ */
+function chartWidget(
+  prefix: string,
+  kpi: KpiDefinition,
+  render: WidgetDefinition["render"],
+  titleSuffix: string
+): WidgetDefinition {
+  const base = cardWidget(kpi)
+  return {
+    ...base,
+    id: `${prefix}.${kpi.id}`,
+    title: `${kpi.label} ${titleSuffix}`,
+    size: WIDE_SIZE,
+    render,
+  }
+}
+
+export const WIDGETS: readonly WidgetDefinition[] = [
+  ...selectableKpis().map(cardWidget),
+  chartWidget("trend", kpiById("reEnrolmentRate"), TrendWidget, "over time"),
+  chartWidget("ranking", kpiById("seatUtilisation"), RankingWidget, "by unit"),
+  chartWidget(
+    "ranking",
+    kpiById("contributionMargin"),
+    RankingWidget,
+    "by unit"
+  ),
+]
 
 const BY_ID = new Map(WIDGETS.map((widget) => [widget.id, widget]))
 

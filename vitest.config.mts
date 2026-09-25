@@ -1,5 +1,5 @@
-import react from "@vitejs/plugin-react-swc";
-import { defineConfig } from "vitest/config";
+import react from "@vitejs/plugin-react-swc"
+import { defineConfig } from "vitest/config"
 
 // Note: the React plugin is the SWC one, not @vitejs/plugin-react. The Babel-based
 // plugin pulls @babel/core@8 (rc) through @rolldown/plugin-babel, which conflicts with
@@ -50,9 +50,36 @@ export default defineConfig({
         statements: 80,
         // Pure logic is where the bugs live and where coverage is cheap (PLAN §14).
         "lib/**": { lines: 95, functions: 95, branches: 90, statements: 95 },
-        "components/dashboard/**": { lines: 80, functions: 80, branches: 75, statements: 80 },
-        "components/scope/**": { lines: 80, functions: 80, branches: 75, statements: 80 },
+        "components/dashboard/**": {
+          lines: 80,
+          functions: 80,
+          branches: 75,
+          statements: 80,
+        },
+        "components/charts/**": {
+          lines: 80,
+          // Lower on purpose, and only here: most uncovered functions are render
+          // callbacks passed to Recharts (tick formatters, label formatters), and
+          // jsdom gives the chart no layout, so the library never calls them. They
+          // are covered by Playwright instead. Any rule worth enforcing has been
+          // extracted to lib/viz/series.ts where it IS covered.
+          functions: 60,
+          branches: 70,
+          statements: 80,
+        },
+        "components/widgets/**": {
+          lines: 80,
+          functions: 80,
+          branches: 70,
+          statements: 80,
+        },
+        "components/scope/**": {
+          lines: 80,
+          functions: 80,
+          branches: 75,
+          statements: 80,
+        },
       },
     },
   },
-});
+})

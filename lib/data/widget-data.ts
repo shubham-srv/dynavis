@@ -6,6 +6,7 @@ import { ACADEMIC_YEARS } from "@/lib/data/fixtures/fx"
 import { findNode, schoolsUnder } from "@/lib/data/fixtures/org"
 import { kpiValue } from "@/lib/data/fixtures/values"
 import { kpiById } from "@/lib/kpi/catalog"
+import { buildMatrix } from "@/lib/matrix/build"
 import type { FxBasis } from "@/lib/money/fx"
 import { computeDelta } from "@/lib/viz/format"
 
@@ -31,6 +32,16 @@ export interface WidgetDatum {
   history: readonly { x: string; y: number | null }[]
   /** How many children were actually measured — drives the small-denominator floor. */
   n: number
+  /**
+   * The same KPI across the children of this scope — what the ranking form and the
+   * focus view's "By location" axis draw (PLAN §6.6).
+   */
+  children: readonly {
+    id: string
+    label: string
+    value: number | null
+    vsBaseline: number | null
+  }[]
 }
 
 export interface LoadOptions {
@@ -89,7 +100,31 @@ export function loadWidgetDatum(
       y: kpiValue(scopeId, kpiId, ay, basis),
     })),
     n: node.level === "school" ? 1 : schoolsUnder(scopeId).length,
+    children: childSeries(scopeId, kpiId, period, basis, preferredBaseline),
   }
+}
+
+/** Reuses the matrix builder, so a card and the matrix can never disagree. */
+function childSeries(
+  scopeId: string,
+  kpiId: string,
+  period: PeriodRef,
+  basis: FxBasis,
+  baselineMode: BaselineKind
+) {
+  const matrix = buildMatrix({
+    scopeId,
+    kpiIds: [kpiId],
+    period,
+    baselineMode,
+    basis,
+  })
+  return matrix.rows.map((row, index) => ({
+    id: row.id,
+    label: row.label,
+    value: matrix.cells[index][0].value,
+    vsBaseline: matrix.cells[index][0].vsBaseline,
+  }))
 }
 
 function peerValuesFor(

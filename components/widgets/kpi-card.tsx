@@ -11,6 +11,7 @@ import {
   NOT_MEASURED,
 } from "@/lib/viz/format"
 import { Sparkline } from "@/components/charts/sparkline"
+import { TrendChart } from "@/components/charts/lazy"
 
 /**
  * A single KPI, at the current scope.
@@ -38,8 +39,11 @@ export function KpiCard({ datum, kpi, variant }: WidgetRenderProps) {
     compact: true,
   })
 
-  const showSparkline =
-    variant !== "micro" && history.some((point) => point.y !== null)
+  const measured = history.some((point) => point.y !== null)
+  // The variant ladder: a sparkline earns its place from `compact`, a real trend with
+  // axes and a target line only once the box is wide enough to read one (PLAN §7).
+  const showSparkline = variant === "compact" || variant === "standard"
+  const showTrend = variant === "expanded" && measured
   // Reuse the matrix buckets rather than re-deriving them, so a card and a matrix cell
   // can never disagree about whether a value is worth colouring.
   const tint = matrixTintVar(matrixTint(vsBaseline))
@@ -67,11 +71,24 @@ export function KpiCard({ datum, kpi, variant }: WidgetRenderProps) {
         )}
       </div>
 
-      {showSparkline ? (
+      {showSparkline && measured ? (
         <Sparkline
           points={history}
           direction={kpi.direction}
           className="h-8 w-full"
+        />
+      ) : null}
+
+      {showTrend ? (
+        <TrendChart
+          points={history}
+          variant={variant}
+          format={kpi.format}
+          precision={kpi.precision}
+          currency={kpi.money ? "USD" : undefined}
+          target={kpi.target}
+          height={120}
+          label={`${kpi.label} over time`}
         />
       ) : null}
 
