@@ -5,7 +5,7 @@ import { Breadcrumbs } from "@/components/scope/breadcrumbs"
 import { FocusView } from "@/components/focus/focus-view"
 import { fixtureLookup } from "@/lib/data/fixtures/lookup"
 import { CURRENT_ACADEMIC_YEAR } from "@/lib/data/fixtures/org"
-import { loadWidgetDatum } from "@/lib/data/widget-data"
+import { loadForWidget } from "@/lib/data/widget-data"
 import {
   buildWaterfall,
   offeredBreakdowns,
@@ -83,7 +83,7 @@ export default async function FocusPage({ params, searchParams }: PageProps) {
 
   const current = resolved.at(-1)!
   const kpi = kpiById(widget.kpiId)
-  const datum = loadWidgetDatum(current.id, widget.kpiId, period)
+  const datum = loadForWidget(widget, current.id, period)
 
   const offered = offeredBreakdowns(kpi, datum)
   const breakdown = resolveBreakdown(first(query.by), offered)

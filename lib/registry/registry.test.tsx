@@ -3,13 +3,14 @@ import { describe, expect, it } from "vitest"
 
 import { ContainerSizeProvider } from "@/components/dashboard/container-size"
 import { CURRENT_ACADEMIC_YEAR } from "@/lib/data/fixtures/org"
-import { loadWidgetDatum } from "@/lib/data/widget-data"
+import { loadForWidget, loadWidgetDatum } from "@/lib/data/widget-data"
 import { kpiById } from "@/lib/kpi/catalog"
 import { LEVELS } from "@/lib/scope/levels"
 import { fixtureLookup } from "@/lib/data/fixtures/lookup"
 import { resolveScope } from "@/lib/scope/resolve"
 import {
   DEFAULT_WIDGET_IDS,
+  isValidAtLevel,
   unavailableReason,
   widgetById,
   widgetsForLevel,
@@ -75,7 +76,24 @@ describe.each(WIDGETS.map((widget) => [widget.id, widget] as const))(
   "%s",
   (_id, widget) => {
     const kpi = kpiById(widget.kpiId)
-    const datum = loadWidgetDatum("sch-dxb-01", widget.kpiId, period)
+    const Body = widget.render
+
+    /*
+      Load where the widget is actually meaningful.
+
+      A correlation widget needs a population to correlate across, and a school has no
+      children — loaded at `sch-dxb-01` it can only ever report "too few units", so every
+      assertion below would pass against a widget that never drew anything. The scope
+      *reference* stays the school either way, because the summary assertion is about
+      naming the scope you are looking at, not about where the rows came from.
+    */
+    const atSchool = isValidAtLevel(widget, "school")
+    const dataScopeId = atSchool ? "sch-dxb-01" : "emea"
+    const sparseScopeId = atSchool ? "sch-eg-01" : "eg"
+
+    // `loadForWidget`, not `loadWidgetDatum`: it is what every page uses, and it is what
+    // attaches the paired series a correlation widget declares.
+    const datum = loadForWidget(widget, dataScopeId, period)
 
     it("answers a question in words", () => {
       expect(widget.question.trim().length).toBeGreaterThan(0)
@@ -110,7 +128,7 @@ describe.each(WIDGETS.map((widget) => [widget.id, widget] as const))(
         expect(() =>
           render(
             <ContainerSizeProvider width={VARIANT_MIN_WIDTH[variant]}>
-              {widget.render({ datum, kpi, scope, variant })}
+              <Body datum={datum} kpi={kpi} scope={scope} variant={variant} />
             </ContainerSizeProvider>
           )
         ).not.toThrow()
@@ -134,11 +152,16 @@ describe.each(WIDGETS.map((widget) => [widget.id, widget] as const))(
     it("survives a scope where the KPI was never measured", () => {
       // Egypt reports no progress score; the primary school has no placement rate. Both
       // must render as "not measured" rather than throwing or showing zero.
-      const sparse = loadWidgetDatum("sch-eg-01", widget.kpiId, period)
+      const sparse = loadForWidget(widget, sparseScopeId, period)
       expect(() =>
         render(
           <ContainerSizeProvider width={560}>
-            {widget.render({ datum: sparse, kpi, scope, variant: "standard" })}
+            <Body
+              datum={sparse}
+              kpi={kpi}
+              scope={scope}
+              variant="standard"
+            />
           </ContainerSizeProvider>
         )
       ).not.toThrow()

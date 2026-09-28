@@ -23,7 +23,9 @@ import {
 import {
   canDrillFrom,
   DEFAULT_ROLE_ID,
+  dashboardHref,
   homeScopeIds,
+  roleLandingIds,
   isAuthorisedScope,
   roleById,
   rolePillars,
@@ -380,5 +382,74 @@ describe("roles", () => {
     expect(rolePillars({ ...superAdmin, pillars: ["academic"] })).toEqual([
       "academic",
     ])
+  })
+})
+
+describe("roleLandingIds — the dead-end bug", () => {
+  const superAdmin = roleById("super-admin")
+  const regional = roleById("regional-manager")
+  const principal = roleById("principal")
+
+  it("sends a role with no scope to its own home, not to the tree root", () => {
+    /*
+      The bug, exactly. `/dashboard?role=principal` resolved the empty scope against the
+      tree root, which the principal cannot see, so they were shown "you don't have
+      access" — on their own landing page. `homeScopeIds` had been written for this and
+      was never called from app code.
+    */
+    expect(roleLandingIds(principal, [], fixtureLookup)).toEqual([
+      "emea",
+      "uae",
+      "dubai",
+      "sch-dxb-01",
+    ])
+    expect(roleLandingIds(regional, [], fixtureLookup)).toEqual(["emea"])
+    // A role already rooted at the tree root stays there.
+    expect(roleLandingIds(superAdmin, [], fixtureLookup)).toEqual([])
+  })
+
+  it("never returns a path the role cannot see", () => {
+    // The property that makes the denial page's link safe: whatever it returns is
+    // somewhere this role may actually go, so the link can never render the same 403.
+    for (const role of [superAdmin, regional, principal]) {
+      for (const ids of [
+        [],
+        ["apac"],
+        ["apac", "au"],
+        ["emea", "uae", "dubai"],
+        ["emea", "uae", "dubai", "sch-dxb-01"],
+      ]) {
+        const landing = roleLandingIds(role, ids, fixtureLookup)
+        expect(isAuthorisedScope(role, landing, fixtureLookup)).toBe(true)
+      }
+    }
+  })
+
+  it("keeps your place across a role switch where that is legal", () => {
+    // A regional manager at a Dubai school switching to super admin stays on that school
+    // rather than being thrown back to the group.
+    const deep = ["emea", "uae", "dubai", "sch-dxb-01"]
+    expect(roleLandingIds(superAdmin, deep, fixtureLookup)).toEqual(deep)
+  })
+
+  it("falls back to the deepest prefix the role can see", () => {
+    // A regional manager asked for a school under their own region keeps as much of the
+    // path as their depth cap allows.
+    expect(
+      roleLandingIds(regional, ["emea", "uae", "dubai"], fixtureLookup)
+    ).toEqual(["emea", "uae", "dubai"])
+    // And is sent home from another region entirely.
+    expect(roleLandingIds(regional, ["apac", "au"], fixtureLookup)).toEqual([
+      "emea",
+    ])
+  })
+
+  it("builds a dashboard URL with the scope and the role", () => {
+    expect(dashboardHref(["emea", "uae"], "regional-manager")).toBe(
+      "/dashboard/emea/uae?role=regional-manager"
+    )
+    expect(dashboardHref([], "super-admin")).toBe(
+      "/dashboard?role=super-admin"
+    )
   })
 })

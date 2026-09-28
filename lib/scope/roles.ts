@@ -135,3 +135,42 @@ export function rolePillars(role: Role): readonly Pillar[] {
     ? ["revenue", "efficiency", "academic"]
     : role.pillars
 }
+
+/**
+ * Where a role should actually land, given a requested path.
+ *
+ * Two distinct situations were being conflated, and that was the bug (`homeScopeIds` was
+ * written for this and never called):
+ *
+ *   - **`/dashboard` with no scope** means "my dashboard". For a role whose root is not
+ *     the tree root that is *not* a request for the group view, so resolving it against
+ *     the tree root denied a principal access to their own landing page — and the denial
+ *     page then linked back to `/dashboard`, which denied them again. A dead end.
+ *   - **a hand-edited deep link** outside the subtree is a real 403 and stays one
+ *     (PLAN §6.4). This never rescues it.
+ *
+ * So: the requested path if it is allowed, else the deepest allowed prefix of it, else
+ * the role's own home. The prefix step is what makes the role switcher keep your place
+ * where that is legal — a regional manager at `/emea/uae/dubai` switching to super admin
+ * stays there rather than being thrown to the root.
+ */
+export function roleLandingIds(
+  role: Role,
+  ids: readonly string[],
+  lookup: ScopeLookup
+): string[] {
+  for (let end = ids.length; end > 0; end--) {
+    const candidate = ids.slice(0, end)
+    if (isAuthorisedScope(role, candidate, lookup)) return candidate
+  }
+  return homeScopeIds(role, lookup)
+}
+
+/** `/dashboard/a/b?role=x` — the one place this URL is built. */
+export function dashboardHref(
+  ids: readonly string[],
+  roleId?: string
+): string {
+  const path = ids.length ? `/${ids.join("/")}` : ""
+  return `/dashboard${path}${roleId ? `?role=${roleId}` : ""}`
+}

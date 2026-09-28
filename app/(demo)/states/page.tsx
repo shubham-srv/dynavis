@@ -5,7 +5,8 @@ import { WidgetRenderer } from "@/components/dashboard/widget-renderer"
 import { WidgetShell } from "@/components/dashboard/widget-shell"
 import { fixtureLookup } from "@/lib/data/fixtures/lookup"
 import { CURRENT_ACADEMIC_YEAR } from "@/lib/data/fixtures/org"
-import { loadWidgetDatum } from "@/lib/data/widget-data"
+import { loadForWidget } from "@/lib/data/widget-data"
+import { widgetById } from "@/lib/registry/registry"
 import { resolveScope } from "@/lib/scope/resolve"
 
 export const metadata: Metadata = { title: "States" }
@@ -102,9 +103,12 @@ export default function StatesPage() {
         <ul className="grid gap-4 md:grid-cols-3">
           {REAL.map(({ widgetId, scopeIds, note }) => {
             const scope = resolveScope(scopeIds, fixtureLookup)!
-            const datum = loadWidgetDatum(
+            // Via the registry rather than by stripping "card." off the id: that string
+            // hack silently produces a wrong KPI for any widget not named that way, and
+            // `loadForWidget` is also what attaches the extra series some widgets declare.
+            const datum = loadForWidget(
+              widgetById(widgetId),
               scope.at(-1)!.id,
-              widgetId.replace("card.", ""),
               period
             )
             return (

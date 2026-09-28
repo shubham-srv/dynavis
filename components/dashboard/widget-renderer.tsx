@@ -1,6 +1,7 @@
 "use client"
 
 import { useVariant } from "@/components/dashboard/container-size"
+import { useVariantTransition } from "@/hooks/use-variant-transition"
 import { WidgetShell } from "@/components/dashboard/widget-shell"
 import type { WidgetDatum } from "@/lib/data/widget-data"
 import { kpiById } from "@/lib/kpi/catalog"
@@ -46,8 +47,12 @@ export function WidgetRenderer({
 }) {
   const widget = widgetById(widgetId)
   const kpi = kpiById(widget.kpiId)
+  // Rendered as a component, not called as a function, so a widget may use hooks. The
+  // registry is a module constant, so this identity is stable and nothing remounts.
+  const Body = widget.render
   const measuredVariant = useVariant(widget.variants)
   const variant = explicitVariant ?? measuredVariant
+  const transition = useVariantTransition(variant)
 
   return (
     <WidgetShell
@@ -62,7 +67,14 @@ export function WidgetRenderer({
       focusHref={focusHref}
       domId={domId}
     >
-      {widget.render({ datum, kpi, scope, variant })}
+      {/*
+        Keyed on the variant so React swaps the form outright instead of reconciling one
+        into the other — the crossfade has to play on the new form, not on a half-patched
+        mixture of both. The class is absent on first render (PLAN §7, reduced motion).
+      */}
+      <div key={transition.key} className={transition.className}>
+        <Body datum={datum} kpi={kpi} scope={scope} variant={variant} />
+      </div>
     </WidgetShell>
   )
 }

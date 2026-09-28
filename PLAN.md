@@ -614,9 +614,20 @@ exactly 340px quantised to 336 and resolved one variant too narrow.
 | Trend (line/area) | headline value + delta, "View chart" | sparkline, no axes | 1–2 series, thinned ticks, no gridlines | full axes, legend, brush |
 | Bar / column | top 3 as a labelled list | **horizontal** bars, top 5 + Other | horizontal bars, all | vertical bars, full axes |
 | Stacked bar | total + top segment | 100% stacked, 3 segments + Other | full stack, legend | full stack + segment labels |
-| Scatter | correlation sentence + "View chart" | binned hexes or top-N | full scatter, **≤3 series** (§11.2) | full + brush |
+| Scatter / quadrant | correlation sentence + "View chart" | **2×2 quadrant counts** | full scatter, median crosshair, **≤3 series** (§11.2) | + radius channel, quadrant verdicts, outliers labelled |
 | **Matrix** | **ranked list, 1 KPI, top/bottom 5** | **ranked list, 1 KPI, all rows** | **4–5 KPI columns, sticky row header** | **full matrix, sortable, virtualised** |
 | Table | 2 columns | 3 columns | full, horizontally scrollable | full + sort |
+
+**Amendment (quadrant row, `compact`).** This originally read "binned hexes or top-N".
+Hexbin addresses overplotting above roughly a thousand marks; this product plots one mark per
+school, so 14–40. Binning would hide structure to solve a problem that does not arise here.
+The `compact` rung shows **quadrant counts** instead — four tiles reading "5 schools · low cost
+per student · high attainment" — which keeps the chart's insight (which group a school is in)
+while discarding its geometry entirely. That is the rung that proves D1: it is not a small
+scatter, it is a different chart of the same fact.
+
+The ladder is implemented by `quadrant.costVsAttainment` and asserted rung by rung in
+`components/widgets/quadrant-widget.test.tsx`.
 
 Cross-cutting rules below `standard`:
 
@@ -625,7 +636,18 @@ Cross-cutting rules below `standard`:
 - Minimum 44×44 CSS px for anything tappable. School names are long — truncate with a title attribute, never wrap to three lines.
 - Hit-test by **nearest on the category axis**, never by hitting the mark. Scatter uses nearest-neighbour with a ~24px radius.
 - Touch and keyboard drive a **readout strip**, not a floating tooltip. One component, both inputs.
-- `prefers-reduced-motion` → animations off.
+- `prefers-reduced-motion` → animations off. **Mechanism:** three duration tokens in
+  `app/globals.css` (`--motion-fast/base/slow`), zeroed by one media query, plus a
+  `*`-selector backstop for third-party CSS. Every animation reads a token; a hardcoded
+  duration escapes the switch, and `app/globals.test.ts` fails the build if one appears.
+  Animation is additionally gated on `data-motion-ready` (`<MotionReady>`), so a cold load
+  paints statically and only *changes* animate — a widget's first measurement is itself a
+  variant change, so without the gate every widget animated on every load.
+- **No animation may change the opacity of anything carrying text.** A widget's first
+  measurement can still be in flight when the page is inspected, and text at a fractional
+  opacity fails a contrast check — this was 21 intermittent axe failures across the dashboard
+  routes. The variant transition is transform-only, which is contrast-safe by construction
+  rather than by winning a race. Asserted in `app/globals.test.ts`.
 
 ---
 

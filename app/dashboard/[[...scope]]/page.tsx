@@ -1,13 +1,13 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 
 import { Breadcrumbs } from "@/components/scope/breadcrumbs"
 import { DashboardCustomizer } from "@/components/dashboard/dashboard-customizer"
 import { MatrixSection } from "@/components/scope/matrix-section"
 import { CURRENT_ACADEMIC_YEAR } from "@/lib/data/fixtures/org"
 import { buildMatrix } from "@/lib/matrix/build"
-import { loadWidgetDatum } from "@/lib/data/widget-data"
+import { loadForWidget } from "@/lib/data/widget-data"
 import {
   DEFAULT_WIDGET_IDS,
   widgetById,
@@ -20,9 +20,11 @@ import { parseScopeSegments } from "@/lib/scope/path"
 import { describeScope, resolveScope } from "@/lib/scope/resolve"
 import {
   canDrillFrom,
+  dashboardHref,
   DEFAULT_ROLE_ID,
   isAuthorisedScope,
   type Role,
+  roleLandingIds,
   ROLES,
   roleById,
 } from "@/lib/scope/roles"
@@ -80,6 +82,18 @@ export default async function DashboardPage({
   if (!resolved) notFound()
 
   const role = resolveRole(query.role)
+
+  /*
+    `/dashboard` with no scope means "my dashboard", not "the group dashboard". A role
+    rooted below the tree root has to be sent to its own home first, or it is denied
+    access to its own landing page — which is exactly what happened to the principal.
+    A deep link, by contrast, is a request and still gets a 403 below (PLAN §6.4).
+  */
+  if (ids.length === 0 && !isAuthorisedScope(role, ids, fixtureLookup)) {
+    const home = roleLandingIds(role, ids, fixtureLookup)
+    if (home.length > 0) redirect(dashboardHref(home, role.id))
+  }
+
   if (!isAuthorisedScope(role, ids, fixtureLookup)) {
     return <AccessDenied role={role} />
   }
@@ -138,7 +152,7 @@ export default async function DashboardPage({
           data={Object.fromEntries(
             widgetsForLevel(current.level).map((widget) => [
               widget.id,
-              loadWidgetDatum(current.id, widget.kpiId, period),
+              loadForWidget(widget, current.id, period),
             ])
           )}
         />
@@ -163,7 +177,12 @@ export default async function DashboardPage({
           <MatrixSection
             matrix={buildMatrix({
               scopeId: current.id,
-              kpiIds: DEFAULT_WIDGET_IDS.map((id) => widgetById(id).kpiId),
+              // Deduplicated: two widgets may share a KPI — the quadrant chart and the
+              // attainment card both report `attainmentRate` — and the matrix must not
+              // grow a second identical column for the same measure.
+              kpiIds: [
+                ...new Set(DEFAULT_WIDGET_IDS.map((id) => widgetById(id).kpiId)),
+              ],
               period,
             })}
             scopeIds={ids}
@@ -183,6 +202,10 @@ export default async function DashboardPage({
 }
 
 function AccessDenied({ role }: { role: Role }) {
+  // Point at where this role can actually go. Linking to `/dashboard` looked right and
+  // was a dead end for any role not rooted at the tree root: the link rendered the very
+  // page the reader was already on, so clicking it did nothing.
+  const home = roleLandingIds(role, [], fixtureLookup)
   return (
     <div className="flex max-w-prose flex-col gap-3">
       <h1 className="text-2xl font-semibold tracking-tight">
@@ -195,8 +218,8 @@ function AccessDenied({ role }: { role: Role }) {
         request, not a grant.
       </p>
       <Link
-        href={`/dashboard?role=${role.id}`}
-        className="self-start rounded-md underline underline-offset-4 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        href={dashboardHref(home, role.id)}
+        className="self-start min-h-11 inline-flex items-center rounded-md underline underline-offset-4 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       >
         Go to your dashboard
       </Link>
@@ -227,7 +250,13 @@ function RoleSwitcher({
         {ROLES.map((role) => (
           <li key={role.id}>
             <Link
-              href={`/dashboard${scopeIds.length ? `/${scopeIds.join("/")}` : ""}?role=${role.id}`}
+              // Each role links to where *it* can go, not to the current path. Carrying
+              // the path across a switch sent every role that could not see it straight
+              // to the denial page.
+              href={dashboardHref(
+                roleLandingIds(role, scopeIds, fixtureLookup),
+                role.id
+              )}
               aria-current={role.id === current.id ? "true" : undefined}
               className={
                 role.id === current.id

@@ -28,8 +28,18 @@ export interface ContainerSize {
 
 const UNMEASURED: ContainerSize = { width: 0, height: 0, measured: false }
 
+/**
+ * Trailing debounce on a resize, in ms.
+ *
+ * Exported because motion depends on it: every widget starts unmeasured and resolves to
+ * `micro`, so the first measurement is itself a variant change. Anything that animates
+ * variant changes has to wait out this window, or it animates once on every cold load —
+ * see `<MotionReady>`.
+ */
+export const MEASUREMENT_DEBOUNCE_MS = 100
+
 export function useContainerSize<T extends HTMLElement = HTMLDivElement>(
-  debounceMs = 100
+  debounceMs = MEASUREMENT_DEBOUNCE_MS
 ): [(node: T | null) => void, ContainerSize] {
   const [size, setSize] = useState<ContainerSize>(UNMEASURED)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)

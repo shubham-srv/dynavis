@@ -31,6 +31,16 @@ export interface WidgetRenderProps {
 export interface WidgetDefinition {
   id: string
   kpiId: string
+  /**
+   * A second KPI, plotted against `kpiId`. Set only by correlation widgets.
+   *
+   * Its presence is what tells the page loader to do the paired join, so a widget opts
+   * into the extra query by declaring what it needs rather than by the loader guessing
+   * from the widget's id.
+   */
+  pairKpiId?: string
+  /** A third KPI, encoded as mark size where there is room to read one. */
+  weightKpiId?: string
   title: string
   /** The single question it answers. If you cannot write one, cut the widget. */
   question: string
@@ -51,6 +61,17 @@ export interface WidgetDefinition {
   /** Focus-view axes. First entry is the default (PLAN §6.6). */
   breakdowns: readonly Breakdown[]
 
+  /**
+   * The widget body. **A React component, and it must be rendered as one.**
+   *
+   * The signature is a component's signature, but for a long time every call site invoked
+   * it as a plain function — `{widget.render(props)}`. That works right up until a widget
+   * uses a hook, at which point React throws "Invalid hook call" from inside whichever
+   * component happened to be rendering, and the stack points nowhere near the registry.
+   * Call sites now do `const Body = widget.render` and render `<Body {...props} />`, which
+   * gives every widget its own component instance, its own hooks, and its own place in the
+   * React tree.
+   */
   render: (props: WidgetRenderProps) => ReactNode
 
   /** Mandatory, not optional — this is what a screen reader actually gets. */

@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { Geist_Mono, Inter } from "next/font/google"
 
 import "./globals.css"
+import { MotionReady } from "@/components/motion/motion-ready"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
 
@@ -40,7 +41,11 @@ export default function RootLayout({
       )}
     >
       <body>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          {/* Opens the motion gate one frame after first paint. See globals.css. */}
+          <MotionReady />
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   )

@@ -1,6 +1,7 @@
 "use client"
 
 import { ContainerSizeProvider } from "@/components/dashboard/container-size"
+import { useFlip } from "@/hooks/use-flip"
 import { WidgetRenderer } from "@/components/dashboard/widget-renderer"
 import type { WidgetDatum } from "@/lib/data/widget-data"
 import type { SizeToken } from "@/lib/layout/tokens"
@@ -74,6 +75,16 @@ export function DashboardGrid({
   onRemove?: (widgetId: string) => void
   focusHrefFor?: (widgetId: string) => string
 }) {
+  /*
+    Reordering is a CSS-order change, so the browser has nothing to animate on its own and
+    a moved row simply teleports. FLIP measures before and after and animates the
+    difference as a transform — no layout thrash, and DOM order still equals visual order
+    (which `dense` auto-placement would have broken).
+  */
+  const flipRef = useFlip<HTMLUListElement>(
+    widgets.map((widget) => widget.widgetId)
+  )
+
   if (widgets.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
@@ -83,7 +94,10 @@ export function DashboardGrid({
   }
 
   return (
-    <ul className="grid list-none auto-rows-[88px] grid-cols-1 gap-3 md:grid-cols-6 xl:grid-cols-12">
+    <ul
+      ref={flipRef}
+      className="grid list-none auto-rows-[88px] grid-cols-1 gap-3 md:grid-cols-6 xl:grid-cols-12"
+    >
       {widgets.map(({ widgetId, datum }, index) => {
         const widget = widgetById(widgetId)
         // The desktop token drives the class set; the class set itself carries the
@@ -93,6 +107,7 @@ export function DashboardGrid({
         return (
           <li
             key={widgetId}
+            data-flip-key={widgetId}
             // min-w-0 here plus minmax(0, 1fr) from grid-cols-* is load-bearing:
             // without both, chart SVGs and wide tables refuse to shrink and the page
             // gains a horizontal scrollbar (PLAN §9).

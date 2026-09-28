@@ -22,6 +22,30 @@ and the architectural base for the client project.
 `/before-after`, `/kitchen-sink` and `/states` live under `app/(demo)` and are deleted at
 client kickoff (PLAN §0).
 
+## The responsive bet, in one widget
+
+`quadrant.costVsAttainment` (Cost per student × Attainment, one mark per school) is the
+clearest demonstration of PLAN D1 — *substitute the form, never shrink the chart*. The same
+widget on the same dashboard renders four different kinds of object:
+
+| Container width | What it renders |
+|---|---|
+| `<336px` | a sentence stating the correlation, and naming the schools that break it |
+| `336–560` | four quadrant tiles with counts — the insight, none of the geometry |
+| `560–896` | a scatter with the median crosshair; no radius channel |
+| `≥896px` | radius by gross revenue, quadrant verdicts, outliers labelled |
+
+It is full width, so all of this is visible on `/dashboard` by resizing a real window — not
+only on `/kitchen-sink`. `components/widgets/quadrant-widget.test.tsx` asserts each rung.
+
+## Motion
+
+Animation is opt-out by construction. Three duration tokens in `app/globals.css` are zeroed
+by a single `prefers-reduced-motion` query, and `app/globals.test.ts` fails the build if any
+rule hardcodes a duration instead. Everything is additionally gated behind
+`data-motion-ready`, set once the first layout settles, so a cold load paints statically and
+only *changes* animate.
+
 ## Requirements
 
 Node 20 (see `.nvmrc`). Use `npm ci`, not `npm install`, when cloning on another machine —

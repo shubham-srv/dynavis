@@ -4,8 +4,8 @@ import { ContainerSizeProvider } from "@/components/dashboard/container-size"
 import { WidgetRenderer } from "@/components/dashboard/widget-renderer"
 import { fixtureLookup } from "@/lib/data/fixtures/lookup"
 import { CURRENT_ACADEMIC_YEAR } from "@/lib/data/fixtures/org"
-import { loadWidgetDatum } from "@/lib/data/widget-data"
-import { WIDGETS } from "@/lib/registry/registry"
+import { loadForWidget } from "@/lib/data/widget-data"
+import { isValidAtLevel, WIDGETS } from "@/lib/registry/registry"
 import { resolveScope } from "@/lib/scope/resolve"
 import { VARIANT_MIN_WIDTH, type Variant } from "@/lib/viz/variants"
 
@@ -32,9 +32,21 @@ const period = { kind: "academic-year", id: CURRENT_ACADEMIC_YEAR } as const
 
 /** A school, so KPIs needing senior years have real values rather than nulls. */
 const SCOPE_ID = "sch-dxb-01"
+const SCHOOL_PATH = ["emea", "uae", "dubai", SCOPE_ID]
+
+/**
+ * Where to render a widget that is not meaningful at school level.
+ *
+ * A correlation needs a population to correlate *across*, and a school has no children —
+ * rendered at `sch-dxb-01` the quadrant widget correctly reported "only 1 unit reports
+ * both measures" at all four variants, which is true and tells a design reviewer nothing.
+ * Those widgets are shown at the region instead.
+ */
+const REGION_PATH = ["emea"]
 
 export default function KitchenSinkPage() {
-  const scope = resolveScope(["emea", "uae", "dubai", SCOPE_ID], fixtureLookup)!
+  const scope = resolveScope(SCHOOL_PATH, fixtureLookup)!
+  const regionScope = resolveScope(REGION_PATH, fixtureLookup)!
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6">
@@ -48,7 +60,10 @@ export default function KitchenSinkPage() {
 
       <div className="flex flex-col gap-10">
         {WIDGETS.map((widget) => {
-          const datum = loadWidgetDatum(SCOPE_ID, widget.kpiId, period)
+          const atSchool = isValidAtLevel(widget, "school")
+          const where = atSchool ? scope : regionScope
+          const whereId = where.at(-1)!.id
+          const datum = loadForWidget(widget, whereId, period)
           return (
             <section
               key={widget.id}
@@ -59,6 +74,7 @@ export default function KitchenSinkPage() {
                 {widget.title}
                 <span className="ml-2 font-normal text-muted-foreground">
                   {widget.pillar}
+                  {atSchool ? "" : ` · at ${where.at(-1)!.label}`}
                 </span>
               </h2>
 
@@ -86,7 +102,7 @@ export default function KitchenSinkPage() {
                           <WidgetRenderer
                             widgetId={widget.id}
                             datum={datum}
-                            scope={scope}
+                            scope={where}
                             variant={variant}
                           />
                         </ContainerSizeProvider>

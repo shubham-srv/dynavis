@@ -8,6 +8,7 @@ import { kpiValue } from "@/lib/data/fixtures/values"
 import { kpiById } from "@/lib/kpi/catalog"
 import { buildMatrix } from "@/lib/matrix/build"
 import type { FxBasis } from "@/lib/money/fx"
+import { loadPairedChildren, type PairedData } from "@/lib/data/pair-data"
 import { computeDelta } from "@/lib/viz/format"
 
 /**
@@ -42,6 +43,15 @@ export interface WidgetDatum {
     value: number | null
     vsBaseline: number | null
   }[]
+  /**
+   * A second KPI joined to the first, per child — only for widgets that declare a
+   * `pairKpiId`.
+   *
+   * Optional rather than part of every datum: a correlation needs two measures, and every
+   * other widget needs exactly one. Loading a pair for all of them would double the work
+   * on a dashboard where one widget in twenty wants it.
+   */
+  pair?: PairedData
 }
 
 export interface LoadOptions {
@@ -101,6 +111,42 @@ export function loadWidgetDatum(
     })),
     n: node.level === "school" ? 1 : schoolsUnder(scopeId).length,
     children: childSeries(scopeId, kpiId, period, basis, preferredBaseline),
+  }
+}
+
+/**
+ * Load a datum for a widget, honouring whatever extra measures it declares.
+ *
+ * Structurally typed rather than taking a `WidgetDefinition`, so `lib/data` does not have
+ * to import the registry — the registry already imports data, and closing that loop is
+ * how a module graph becomes untestable.
+ *
+ * Every caller that renders a widget goes through this. Calling `loadWidgetDatum`
+ * directly is what left the quadrant widget's pair undefined on the kitchen-sink page,
+ * where it rendered its "needs a paired KPI" message instead of a chart.
+ */
+export function loadForWidget(
+  widget: {
+    kpiId: string
+    pairKpiId?: string
+    weightKpiId?: string
+  },
+  scopeId: string,
+  period: PeriodRef,
+  options: LoadOptions = {}
+): WidgetDatum {
+  const datum = loadWidgetDatum(scopeId, widget.kpiId, period, options)
+  if (!widget.pairKpiId) return datum
+
+  return {
+    ...datum,
+    pair: loadPairedChildren(
+      scopeId,
+      widget.pairKpiId,
+      widget.kpiId,
+      period,
+      { basis: options.basis, weightKpiId: widget.weightKpiId }
+    ),
   }
 }
 

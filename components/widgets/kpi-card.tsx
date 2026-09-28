@@ -10,6 +10,7 @@ import {
   isDeltaMeaningful,
   NOT_MEASURED,
 } from "@/lib/viz/format"
+import { AnimatedNumber } from "@/components/motion/animated-number"
 import { Sparkline } from "@/components/charts/sparkline"
 import { TrendChart } from "@/components/charts/lazy"
 
@@ -23,12 +24,13 @@ import { TrendChart } from "@/components/charts/lazy"
 export function KpiCard({ datum, kpi, variant }: WidgetRenderProps) {
   const { value, delta, vsBaseline, baseline, history, n } = datum
 
-  const valueText = formatValue(value, {
-    format: kpi.format,
-    precision: kpi.precision,
-    currency: kpi.format === "currency" ? "USD" : undefined,
-    compact: kpi.format === "currency" || kpi.format === "number",
-  })
+  const formatHeadline = (input: number | null) =>
+    formatValue(input, {
+      format: kpi.format,
+      precision: kpi.precision,
+      currency: kpi.format === "currency" ? "USD" : undefined,
+      compact: kpi.format === "currency" || kpi.format === "number",
+    })
 
   const meaningful = isDeltaMeaningful(n) || n === 1
   const deltaText = formatDelta(delta, {
@@ -51,8 +53,14 @@ export function KpiCard({ datum, kpi, variant }: WidgetRenderProps) {
   return (
     <div className="flex h-full flex-col justify-between gap-2">
       <div className="flex items-baseline gap-2">
+        {/*
+          Tweened on scope change so a drill reads as continuous rather than as a reload,
+          and so it is visible *which* figures moved. The final frame is the exact value,
+          never an interpolated one, and `null` swaps instead of counting — sliding into
+          "not measured" would imply a number nobody recorded (PLAN §12.3).
+        */}
         <output className="text-2xl font-semibold tracking-tight tabular-nums">
-          {valueText}
+          <AnimatedNumber value={value} format={formatHeadline} />
         </output>
 
         {delta === null ? null : (

@@ -145,6 +145,47 @@ test.describe("guardrails", () => {
     ).toBeVisible()
   })
 
+  test("a principal landing on /dashboard sees their school, not a denial", async ({
+    page,
+  }) => {
+    /*
+      The bug this route had. `/dashboard` with no scope means "my dashboard", and for a
+      role rooted below the tree root it was resolved against the group — denying the
+      principal access to their own landing page.
+    */
+    await page.goto("/dashboard?role=principal")
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      "Al Barsha International School"
+    )
+    await expect(page).toHaveURL(/\/dashboard\/emea\/uae\/dubai\/sch-dxb-01/)
+  })
+
+  test("the denial page's link actually goes somewhere", async ({ page }) => {
+    /*
+      The existing test asserted this link was *visible* and never clicked it, which is
+      how the dead end survived: it pointed at `/dashboard?role=principal`, the same URL
+      that had just denied them, so clicking it re-rendered the denial and looked like
+      nothing happened.
+    */
+    await page.goto("/dashboard/apac/au?role=principal")
+    await page.getByRole("link", { name: /go to your dashboard/i }).click()
+
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      "Al Barsha International School"
+    )
+  })
+
+  test("switching role never lands on a denial page", async ({ page }) => {
+    // The switcher used to carry the current path across, so any role that could not see
+    // it was sent straight to a 403 by its own navigation control.
+    await page.goto("/dashboard/apac/au")
+    await page.getByRole("link", { name: "Principal" }).click()
+
+    await expect(page.getByRole("heading", { level: 1 })).not.toHaveText(
+      /don't have access/i
+    )
+  })
+
   test("a regional manager can see their own region and not another", async ({
     page,
   }) => {

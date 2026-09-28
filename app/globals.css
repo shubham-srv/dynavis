@@ -193,3 +193,119 @@
     color: CanvasText;
   }
 }
+
+/*
+ * Motion.
+ *
+ * PLAN §7 promised "`prefers-reduced-motion` → animations off". Until now that promise
+ * held only because there was nothing to disable. These tokens are the mechanism that
+ * makes it true: every duration in the app reads one of them, and the query below zeroes
+ * all three in one place. A component that hardcodes `200ms` escapes the switch, so no
+ * component does.
+ *
+ * Zero, not "very fast": reduced-motion users include people for whom vestibular motion
+ * is a genuine trigger, and a 40ms slide is still a slide.
+ */
+:root {
+  --motion-fast: 120ms;
+  --motion-base: 180ms;
+  --motion-slow: 320ms;
+  --motion-ease: cubic-bezier(0.2, 0, 0.13, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0s;
+    --motion-base: 0s;
+    --motion-slow: 0s;
+  }
+
+  /*
+    The token covers everything this app authors. This catch-all covers what it does not:
+    third-party CSS (tw-animate-css), and any future component that forgets. Belt and
+    braces on an accessibility guarantee is proportionate.
+  */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/*
+ * The variant transition. **Transform only — deliberately no opacity.**
+ *
+ * It began as a crossfade, and the fade was the problem. A widget's first real
+ * measurement is itself a variant change (every widget starts unmeasured at `micro`), so
+ * under load the animation could still be running when something inspected the page — and
+ * text at a fractional opacity fails a contrast check. The axe suite caught it as twenty-one
+ * intermittent failures across every dashboard route, which is the same thing a reader with
+ * low vision would experience as text that is briefly unreadable.
+ *
+ * A transform cannot cause that. It is composited, so it never affects layout or CLS, and
+ * it never changes a computed colour — the animation is contrast-safe by construction
+ * rather than by winning a race against a timer.
+ *
+ * 6px: enough to read as "this became something else", small enough that it does not look
+ * like the grid is breaking.
+ */
+@keyframes dynavis-variant-in {
+  from {
+    transform: translateY(6px);
+  }
+  to {
+    transform: none;
+  }
+}
+
+/*
+ * Everything below is gated on `data-motion-ready`, which `<MotionReady>` sets one frame
+ * after the first paint.
+ *
+ * That single attribute is what makes "animate on change, never on first appearance" true
+ * for the whole app without any component tracking its own first render. A widget emits
+ * `variant-enter` unconditionally; on the first paint the selector does not match, so the
+ * form appears instantly. Every later variant change remounts the keyed wrapper with the
+ * attribute already present, and the animation plays.
+ */
+:root[data-motion-ready] .variant-enter {
+  animation: dynavis-variant-in var(--motion-base) var(--motion-ease) both;
+}
+
+/* The grid's FLIP transition. Transform only — never width/height, never top/left. */
+:root[data-motion-ready] .flip-move {
+  transition: transform var(--motion-slow) var(--motion-ease);
+}
+
+/*
+ * Scatter marks, drawn as a staggered fade rather than a fly-in from the origin.
+ *
+ * A fly-in animates position, which on a scatter plot means every mark spends the
+ * animation asserting a value it does not have. Opacity says "arriving" without ever
+ * being wrong.
+ */
+@keyframes dynavis-mark-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+
+
+/*
+ * Scatter marks, staggered.
+ *
+ * Gated like everything else, which gives the right behaviour in both cases: a cold page
+ * load paints the chart immediately, and a widget widening into its scatter form animates
+ * the marks in as the chart mounts.
+ */
+:root[data-motion-ready] .mark-in {
+  animation: dynavis-mark-in var(--motion-base) var(--motion-ease) both;
+}
