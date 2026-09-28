@@ -24,7 +24,12 @@ export function useFlip<T extends HTMLElement>(
 ): (node: T | null) => void {
   const container = useRef<T | null>(null)
   const positions = useRef(new Map<string, DOMRect>())
+  const lastOrder = useRef<string | null>(null)
   const reduced = useReducedMotion()
+
+  // A string, so the effect depends on the *contents* of the order rather than on the
+  // array identity — `widgets.map(...)` hands us a new array on every single render.
+  const key = order.join("|")
 
   const setRef = (node: T | null) => {
     container.current = node
@@ -46,9 +51,23 @@ export function useFlip<T extends HTMLElement>(
     }
 
     const previous = positions.current
+    const previousOrder = lastOrder.current
     positions.current = next
+    lastOrder.current = key
+
     // First pass after mount has nothing to compare against, and mount must not animate.
     if (reduced || previous.size === 0) return
+
+    /*
+      Nothing was reordered, so nothing should move.
+
+      Positions change for reasons that are not reorders — drilling into a scope swaps in
+      data that makes a card taller or shorter, which shifts every card below it. Animating
+      that made a drill look like the dashboard was rearranging itself. FLIP is for
+      reordering; the measurement above still runs so the next real reorder compares against
+      current positions.
+    */
+    if (previousOrder === key) return
 
     for (const child of children) {
       const key = child.dataset.flipKey
@@ -73,7 +92,7 @@ export function useFlip<T extends HTMLElement>(
         child.style.transform = ""
       })
     }
-  }, [order, reduced])
+  }, [key, reduced])
 
   return setRef
 }

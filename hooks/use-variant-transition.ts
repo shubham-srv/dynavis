@@ -1,31 +1,58 @@
 "use client"
 
+import { useEffect, useRef } from "react"
+
 import type { Variant } from "@/lib/viz/variants"
 
+import { useReducedMotion } from "./use-reduced-motion"
+
 /**
- * The class name and key for a widget whose form changes with its width.
+ * Animates a widget's body when its *variant* changes, and at no other time.
  *
- * This is the animation that earns its place: a widget crossing 336/560/896 swaps one form
- * for a different one, and without a transition that substitution reads as a glitch rather
- * than as the product's central behaviour. It is the thing the demo is for.
+ * A widget crossing 336/560/896 swaps one form for a different one, and without a
+ * transition that substitution reads as a glitch rather than as the product's central
+ * behaviour.
  *
- * **No state, no effect, no refs.** Two earlier versions tried to remember whether this
- * widget had changed variant yet — one with `useState` inside an effect, one with a ref
- * mutated during render — and the React Compiler lint rejected both. It was right twice:
- * "has anything changed since first paint" is a fact about the page, not about a widget, so
- * twelve widgets were each storing a copy of it. It now lives in one attribute on `<html>`
- * (see `<MotionReady>`), and CSS reads it.
+ * **Why this is a ref and an effect rather than a class name.** The previous version
+ * returned `"variant-enter"` unconditionally and relied on a global `data-motion-ready`
+ * attribute to suppress the first paint. That worked for exactly one page load. The
+ * attribute is set on `<html>` and stays set, so from the second navigation onwards every
+ * widget mounted with the class already live — and drilling into a scope re-mounted all of
+ * them at once. Six cards sliding up together on every drill is the "clunky reshuffle" the
+ * animation was supposed to prevent.
  *
- * What is left is the part that genuinely belongs to the widget: the `key`. Returning a
- * class alone would not animate anything, because React reconciles the old form's DOM into
- * the new one — same element, no mount, no animation, and the transition would play over a
- * half-updated mixture of both forms. Keying on the variant forces a real swap, which is
- * also what makes the animation replay when a window drag crosses a threshold back the
- * other way.
+ * The mistake was scope: "has the page painted once" is not "has this widget changed form".
+ * Only the widget knows the second, so the widget tracks it — in a ref, read and written
+ * inside an effect, which is both correct and what the React Compiler lint allows.
+ *
+ * A fresh mount therefore never animates: navigating, drilling, and the first measurement
+ * settling all leave `previous` null or unchanged. Only a real threshold crossing on a
+ * widget that is already on screen plays the animation.
  */
-export function useVariantTransition(variant: Variant): {
-  className: string
-  key: string
-} {
-  return { className: "variant-enter", key: variant }
+export function useVariantTransition<T extends HTMLElement>(
+  variant: Variant
+): (node: T | null) => void {
+  const node = useRef<T | null>(null)
+  const previous = useRef<Variant | null>(null)
+  const reduced = useReducedMotion()
+
+  useEffect(() => {
+    const element = node.current
+    const before = previous.current
+    previous.current = variant
+
+    // `null` means this is the widget's first render: a mount is not a change.
+    if (before === null || before === variant || reduced || !element) return
+
+    // Removed, reflowed, re-added so the animation restarts. The caller keys the element
+    // on the variant so it is usually a fresh node anyway, but a caller that does not
+    // would otherwise see the animation play only once.
+    element.classList.remove("variant-enter")
+    void element.offsetWidth
+    element.classList.add("variant-enter")
+  }, [variant, reduced])
+
+  return (element: T | null) => {
+    node.current = element
+  }
 }

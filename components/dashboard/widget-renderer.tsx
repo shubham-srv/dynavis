@@ -52,7 +52,7 @@ export function WidgetRenderer({
   const Body = widget.render
   const measuredVariant = useVariant(widget.variants)
   const variant = explicitVariant ?? measuredVariant
-  const transition = useVariantTransition(variant)
+  const transitionRef = useVariantTransition<HTMLDivElement>(variant)
 
   return (
     <WidgetShell
@@ -69,10 +69,11 @@ export function WidgetRenderer({
     >
       {/*
         Keyed on the variant so React swaps the form outright instead of reconciling one
-        into the other — the crossfade has to play on the new form, not on a half-patched
-        mixture of both. The class is absent on first render (PLAN §7, reduced motion).
+        into the other — the transition has to play on the new form, not on a half-patched
+        mixture of both. The hook adds its class only on a real threshold crossing, never
+        on a mount, so navigating and drilling stay still (PLAN §7).
       */}
-      <div key={transition.key} className={transition.className}>
+      <div key={variant} ref={transitionRef}>
         <Body datum={datum} kpi={kpi} scope={scope} variant={variant} />
       </div>
     </WidgetShell>

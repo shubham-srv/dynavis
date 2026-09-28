@@ -186,6 +186,7 @@ export function QuadrantPlot({
   plotWidth?: number
 }) {
   const clipId = useId()
+  const readoutId = useId()
   const reduced = useReducedMotion()
   const [active, setActive] = useState<PairedPoint | null>(null)
 
@@ -281,10 +282,19 @@ export function QuadrantPlot({
   const pick = (event: React.PointerEvent<SVGSVGElement>) => {
     const svg = event.currentTarget
     const box = svg.getBoundingClientRect()
-    // Client pixels back into viewBox units, so the threshold means the same thing at
-    // every rendered width.
-    const px = ((event.clientX - box.left) / box.width) * W
-    const py = ((event.clientY - box.top) / box.height) * H
+    /*
+      Client pixels back into viewBox units, so the 24px threshold means the same thing at
+      every rendered width.
+
+      The guard is not defensive padding: an element with no layout — inside a collapsed
+      panel, a hidden tab, or jsdom — reports a zero-sized box, and dividing by it yields
+      Infinity. Every distance then becomes NaN, every comparison false, and the chart
+      silently stops responding to input. Falling back to 1:1 keeps it working.
+    */
+    const scaleX = box.width > 0 ? W / box.width : 1
+    const scaleY = box.height > 0 ? H / box.height : 1
+    const px = (event.clientX - box.left) * scaleX
+    const py = (event.clientY - box.top) * scaleY
 
     let best: PairedPoint | null = null
     let bestDistance = Infinity
@@ -300,6 +310,54 @@ export function QuadrantPlot({
 
   const colour = colourOf ?? (() => seriesVar(0))
 
+  /*
+    Keyboard access to the marks.
+
+    One tab stop for the whole chart, not one per school: twenty-three tab stops between a
+    reader and the next control is worse than no access. Arrow keys walk the points in
+    x order — the order the eye reads them in — and drive the same readout strip that touch
+    and mouse drive, which is the one-component-two-inputs rule in PLAN §7.
+  */
+  const ordered = [...points].sort((a, b) => a.x - b.x)
+
+  const step = (delta: number) => {
+    const at = active ? ordered.findIndex((p) => p.id === active.id) : -1
+    if (at === -1) {
+      setActive(delta > 0 ? ordered[0] : ordered[ordered.length - 1])
+      return
+    }
+    const next = Math.min(ordered.length - 1, Math.max(0, at + delta))
+    setActive(ordered[next])
+  }
+
+  const onKeyDown = (event: React.KeyboardEvent<SVGSVGElement>) => {
+    switch (event.key) {
+      case "ArrowRight":
+      case "ArrowDown":
+        event.preventDefault()
+        step(1)
+        break
+      case "ArrowLeft":
+      case "ArrowUp":
+        event.preventDefault()
+        step(-1)
+        break
+      case "Home":
+        event.preventDefault()
+        setActive(ordered[0])
+        break
+      case "End":
+        event.preventDefault()
+        setActive(ordered[ordered.length - 1])
+        break
+      case "Escape":
+        setActive(null)
+        break
+      default:
+        break
+    }
+  }
+
   return (
     <div className="flex w-full flex-col gap-1">
       <svg
@@ -308,9 +366,27 @@ export function QuadrantPlot({
         height={height}
         role="img"
         aria-label={label}
-        className="touch-none overflow-visible"
+        aria-describedby={readoutId}
+        /*
+          `touch-action: pan-y`, not `none`.
+
+          `none` was wrong twice over: it swallowed the page's vertical scroll wherever the
+          chart covered the viewport, and it did nothing to make a tap work — a tap emits
+          pointerdown and pointerup with no pointermove between them, so a chart listening
+          only for movement ignored every tap on a phone or tablet. `pan-y` lets the page
+          scroll past and still delivers the tap.
+        */
+        style={{ touchAction: "pan-y" }}
+        className="overflow-visible focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
+        tabIndex={0}
+        onPointerDown={pick}
         onPointerMove={pick}
-        onPointerLeave={() => setActive(null)}
+        onPointerLeave={(event) => {
+          // Only a mouse "leaves". Clearing on a finger lift would wipe the readout the
+          // tap just produced, before it could be read.
+          if (event.pointerType === "mouse") setActive(null)
+        }}
+        onKeyDown={onKeyDown}
       >
         <defs>
           <clipPath id={clipId}>
@@ -525,6 +601,8 @@ export function QuadrantPlot({
           {showWeight && weightLabel ? ` · size: ${weightLabel}` : ""}
         </p>
         <ChartReadout
+          id={readoutId}
+          idleLabel="Tap a point, or focus the chart and use the arrow keys"
           label={active?.label ?? null}
           value={active ? `${fmtY(active.y)} ${yLabel.toLowerCase()}` : null}
           secondary={active ? `${fmtX(active.x)} ${xLabel.toLowerCase()}` : null}

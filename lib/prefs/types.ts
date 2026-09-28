@@ -13,10 +13,25 @@ import type { SizeToken } from "@/lib/layout/tokens"
  * storing one blob for both would show a principal widgets they cannot use.
  */
 export interface DashboardPrefs {
-  version: 2
+  version: 3
   role: string
   /** Order IS the array order. */
   widgets: { id: string; sizeOverride?: SizeToken }[]
+  /**
+   * Default widgets this dashboard has already been offered.
+   *
+   * Without it, a widget added to `DEFAULT_WIDGET_IDS` in a new release never reaches
+   * anyone who has ever customised their dashboard: their saved list is complete as far
+   * as the loader is concerned, so the new widget is simply invisible. That is exactly
+   * what happened when the quadrant chart shipped — it appeared for roles with no saved
+   * preferences and for nobody else, which looked like a rendering bug.
+   *
+   * Comparing against the defaults directly would not work, because it cannot tell "never
+   * offered" from "offered and removed" — it would resurrect a widget every time the user
+   * deleted it. This records what has been offered, so a new default is added once and a
+   * removed one stays removed.
+   */
+  seenDefaults: string[]
   matrix?: {
     visibleKpis?: string[]
     baselineMode?: BaselineKind

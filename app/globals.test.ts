@@ -78,10 +78,17 @@ describe("motion tokens", () => {
     expect(variantIn![0]).not.toMatch(/opacity/)
   })
 
-  it("gates every animation behind the first-paint marker", () => {
-    // Otherwise a cold page load animates, which is both a worse first impression and the
-    // thing the whole `data-motion-ready` mechanism exists to prevent.
-    for (const klass of [".variant-enter", ".flip-move", ".mark-in"]) {
+  it("gates the mount-triggered animations behind the first-paint marker", () => {
+    /*
+      `.flip-move` and `.mark-in` fire when an element appears or moves, so without the gate
+      a cold page load animates.
+
+      `.variant-enter` is deliberately absent from this list: it is applied by
+      `useVariantTransition` only on a real threshold crossing. Gating it as well was the
+      bug — the attribute is set once and never cleared, so from the second navigation
+      onwards it suppressed nothing, and every drill slid every widget up at once.
+    */
+    for (const klass of [".flip-move", ".mark-in"]) {
       const rule = new RegExp(
         `:root\\[data-motion-ready\\][^{]*\\${klass}\\s*\\{`
       )

@@ -24,7 +24,41 @@ export function defaultPrefs(
   role: string,
   defaults: readonly string[]
 ): DashboardPrefs {
-  return { version: 2, role, widgets: defaults.map((id) => ({ id })) }
+  return {
+    version: 3,
+    role,
+    widgets: defaults.map((id) => ({ id })),
+    // A fresh dashboard has been offered everything it contains, so removing a widget
+    // here does not bring it back on the next load.
+    seenDefaults: [...defaults],
+  }
+}
+
+/**
+ * Adopt default widgets this dashboard has never been offered.
+ *
+ * Runs once per load, after storage. A widget added to the defaults in a new release is
+ * appended — at the end, never in the middle, because a user's order is theirs and a new
+ * arrival must not push their top metric down the page. One that was offered before and
+ * is no longer present was removed on purpose and stays gone.
+ */
+export function adoptNewDefaults(
+  prefs: DashboardPrefs,
+  defaults: readonly string[]
+): DashboardPrefs {
+  const seen = new Set(prefs.seenDefaults)
+  const unseen = defaults.filter((id) => !seen.has(id))
+  if (unseen.length === 0) return prefs
+
+  const present = new Set(prefs.widgets.map((widget) => widget.id))
+  return {
+    ...prefs,
+    widgets: [
+      ...prefs.widgets,
+      ...unseen.filter((id) => !present.has(id)).map((id) => ({ id })),
+    ],
+    seenDefaults: [...prefs.seenDefaults, ...unseen],
+  }
 }
 
 /**

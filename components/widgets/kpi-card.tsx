@@ -115,8 +115,20 @@ export function KpiCard({ datum, kpi, variant }: WidgetRenderProps) {
         ) : (
           <>
             {baselineLabel(baseline)}
+            {/*
+              Said in words, not as `n=7`.
+
+              It used to render "vs. target · n=7, treat with care", which sat directly
+              after the baseline and was read as "the target is 7" — the opposite of what
+              it means. `n` is the number of schools the change is averaged over, and the
+              warning is about the change, not the value.
+            */}
             {!meaningful && n > 0 ? (
-              <span> · n={n}, treat with care</span>
+              <span>
+                {" "}
+                · change averaged over {n} school{n === 1 ? "" : "s"}, so treat
+                it as a hint
+              </span>
             ) : null}
           </>
         )}

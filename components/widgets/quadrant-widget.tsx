@@ -1,12 +1,13 @@
 "use client"
 
-import { useMemo } from "react"
+import { useId, useMemo, useState } from "react"
 
 import { QuadrantPlot } from "@/components/charts/scatter-chart"
 import { useContainerWidth } from "@/components/dashboard/container-size"
 import type { WidgetRenderProps } from "@/lib/registry/types"
 import { kpiById } from "@/lib/kpi/catalog"
 import { cn } from "@/lib/utils"
+import { formatValue } from "@/lib/viz/format"
 import { seriesVar } from "@/lib/viz/palette"
 import {
   describeStrength,
@@ -69,6 +70,15 @@ export function QuadrantWidget({ datum, variant, scope }: WidgetRenderProps) {
   // against a fixed height, so a 480-wide box centred in an 860-wide widget left a third
   // of the card empty on each side.
   const { width } = useContainerWidth()
+  /*
+    Which quadrant tile is open.
+
+    A count answers "how many"; the next question is always "which ones", and on a phone
+    there is nowhere else to go and ask it — the scatter that would show you is exactly
+    what this rung replaced. So the tile expands.
+  */
+  const [openQuadrant, setOpenQuadrant] = useState<QuadrantKey | null>(null)
+  const panelId = useId()
 
   const stats = useMemo(() => {
     const split = quadrantSplit(points)
@@ -155,10 +165,20 @@ export function QuadrantWidget({ datum, variant, scope }: WidgetRenderProps) {
     // Reading order: best first, worst last. A grid ordered by geometry (low-low, then
     // high-low…) puts "needs attention" in the middle of the card, which buries it.
     const ordered: QuadrantKey[] = ["low-high", "high-high", "low-low", "high-low"]
+    const open = openQuadrant ? stats.groups[openQuadrant] : null
+
+    const fmt = (kpi: typeof xKpi, value: number) =>
+      formatValue(value, {
+        format: kpi.format,
+        precision: kpi.precision,
+        currency: kpi.money ? "USD" : undefined,
+        compact: true,
+      })
+
     return (
-      <div className="flex h-full flex-col gap-2">
+      <div className="flex h-full min-h-0 flex-col gap-2">
         <p className="text-xs text-muted-foreground">{sentence}</p>
-        <ul className="grid grid-cols-2 gap-1.5">
+        <ul className="grid shrink-0 grid-cols-2 gap-1.5">
           {ordered.map((key) => {
             const group = stats.groups![key]
             const favour = favourabilityOf(key, xKpi.direction, yKpi.direction)
@@ -168,10 +188,28 @@ export function QuadrantWidget({ datum, variant, scope }: WidgetRenderProps) {
               // the population. Reading it from the rendered text would couple the test to
               // the copy; four live regions would announce on every drill.
               <li key={key} data-quadrant={key} data-count={group.length}>
-                <div
-                  // 44px floor: these are read on a phone, and a count worth showing is a
-                  // count worth being able to tap when this becomes a filter (PLAN §7).
-                  className="flex min-h-11 flex-col justify-center rounded-md border border-border px-2 py-1"
+                <button
+                  type="button"
+                  // A real button, not a tinted div with a click handler: this is the only
+                  // way to ask "which schools?" at this width, so it has to be reachable by
+                  // keyboard and announce its state.
+                  aria-expanded={openQuadrant === key}
+                  aria-controls={panelId}
+                  disabled={group.length === 0}
+                  onClick={() =>
+                    setOpenQuadrant((current) =>
+                      current === key ? null : key
+                    )
+                  }
+                  // 44px floor: these are read on a phone (PLAN §7).
+                  className={cn(
+                    "flex min-h-11 w-full flex-col justify-center rounded-md border px-2 py-1 text-left",
+                    "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+                    "disabled:cursor-default disabled:opacity-60",
+                    openQuadrant === key
+                      ? "border-foreground"
+                      : "border-border"
+                  )}
                   data-matrix-tint={tint ? "" : undefined}
                   style={tint ? { backgroundColor: tint } : undefined}
                 >
@@ -201,11 +239,55 @@ export function QuadrantWidget({ datum, variant, scope }: WidgetRenderProps) {
                   >
                     {quadrantLabel(key, xKpi.label, yKpi.label)}
                   </span>
-                </div>
+                </button>
               </li>
             )
           })}
         </ul>
+
+        {/*
+          The answer to "which ones".
+
+          Named schools with both measures, so the reader gets what the scatter would have
+          shown them: not just membership, but where in the group each school sits. Scrolls
+          inside itself rather than growing the card, and carries tabIndex because axe
+          requires a scrollable region to be keyboard-operable.
+        */}
+        <div
+          id={panelId}
+          className="min-h-0 flex-1 overflow-y-auto"
+          tabIndex={open ? 0 : undefined}
+          role={open ? "group" : undefined}
+          aria-label={
+            open && openQuadrant
+              ? `Schools with ${quadrantLabel(openQuadrant, xKpi.label, yKpi.label).toLowerCase()}`
+              : undefined
+          }
+        >
+          {open ? (
+            <ul className="flex flex-col gap-0.5 pt-1">
+              {[...open]
+                .sort((a, b) => b.y - a.y)
+                .map((point) => (
+                  <li
+                    key={point.id}
+                    className="flex items-baseline justify-between gap-2 text-xs"
+                  >
+                    <span className="min-w-0 truncate" title={point.label}>
+                      {point.label}
+                    </span>
+                    <span className="shrink-0 tabular-nums text-muted-foreground">
+                      {fmt(yKpi, point.y)} · {fmt(xKpi, point.x)}
+                    </span>
+                  </li>
+                ))}
+            </ul>
+          ) : (
+            <p className="pt-1 text-[11px] text-muted-foreground">
+              Select a group to see which schools are in it.
+            </p>
+          )}
+        </div>
       </div>
     )
   }

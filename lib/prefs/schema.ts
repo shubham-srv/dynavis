@@ -105,14 +105,16 @@ export function parsePrefs(raw: unknown, role: string): DashboardPrefs | null {
     if (!Array.isArray(raw.widgets) || !raw.widgets.every(nonEmptyString)) {
       return null
     }
+    const ids = raw.widgets as string[]
     return {
-      version: 2,
+      version: 3,
       role,
-      widgets: (raw.widgets as string[]).map((id) => ({ id })),
+      widgets: ids.map((id) => ({ id })),
+      seenDefaults: [...ids],
     }
   }
 
-  if (raw.version !== 2) return null
+  if (raw.version !== 2 && raw.version !== 3) return null
   if (!nonEmptyString(raw.role)) return null
 
   const widgets = parseWidgets(raw.widgets)
@@ -121,10 +123,25 @@ export function parsePrefs(raw: unknown, role: string): DashboardPrefs | null {
   const matrix = parseMatrix(raw.matrix)
   if (!matrix.ok) return null
 
+  /*
+    v2 had no `seenDefaults`, so it is seeded from what the dashboard currently holds.
+
+    The consequence, stated rather than hidden: a v2 user who had *removed* a default
+    widget gets it back once, because there is no record distinguishing "removed" from
+    "never offered" in that schema. Re-offering a widget once is a far smaller harm than
+    the alternative of never delivering a new one, and from v3 onwards the distinction is
+    kept properly.
+  */
+  const seenDefaults =
+    raw.version === 3 && Array.isArray(raw.seenDefaults)
+      ? raw.seenDefaults.filter(nonEmptyString)
+      : widgets.map((widget) => widget.id)
+
   return {
-    version: 2,
+    version: 3,
     role: raw.role,
     widgets,
+    seenDefaults,
     ...(matrix.value === undefined ? {} : { matrix: matrix.value }),
   }
 }

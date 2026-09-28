@@ -268,9 +268,12 @@ describe("DashboardCustomizer", () => {
     it("restores what was saved for the role", async () => {
       await repository.save(
         {
-          version: 2,
+          version: 3,
           role: "super-admin",
           widgets: [{ id: DEFAULT_WIDGET_IDS[2] }],
+          // Offered every current default and kept one. Without this the loader would
+          // treat the other six as newly shipped and adopt them.
+          seenDefaults: [...DEFAULT_WIDGET_IDS],
         },
         "demo"
       )
@@ -283,9 +286,10 @@ describe("DashboardCustomizer", () => {
     it("drops a saved widget the registry no longer has", async () => {
       await repository.save(
         {
-          version: 2,
+          version: 3,
           role: "super-admin",
           widgets: [{ id: DEFAULT_WIDGET_IDS[0] }, { id: "card.retired" }],
+          seenDefaults: [...DEFAULT_WIDGET_IDS, "card.retired"],
         },
         "demo"
       )

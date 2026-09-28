@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 
-import { RankingBar } from "@/components/charts/ranking-bar"
+import { prefersRows, RankingBar } from "@/components/charts/ranking-bar"
 import { ChartReadout } from "@/components/charts/readout"
 import { ScatterPlot } from "@/components/charts/scatter-chart"
 import { Sparkline } from "@/components/charts/sparkline"
@@ -265,5 +265,68 @@ describe("ChartReadout", () => {
   it("prompts rather than showing a blank strip when idle", () => {
     render(<ChartReadout label={null} value={null} />)
     expect(screen.getByText(/select a point/i)).toBeInTheDocument()
+  })
+})
+
+describe("RankingBar — reading the category names", () => {
+  const COUNTRIES = ["United Kingdom", "United Arab Emirates", "Egypt"]
+
+  it("uses rows below expanded, whatever the width", () => {
+    // The long-standing rule: category names read as left-aligned text, never rotated
+    // (PLAN §7).
+    for (const variant of ["micro", "compact", "standard"] as const) {
+      expect(prefersRows(variant, COUNTRIES, 1400)).toBe(true)
+    }
+  })
+
+  it("uses columns at expanded when the names fit under them", () => {
+    expect(prefersRows("expanded", COUNTRIES, 1400)).toBe(false)
+  })
+
+  it("turns horizontal when a name is too long for its column", () => {
+    /*
+      The bug: at `expanded` the chart always used columns, so "United Kingdom" and
+      "United Arab Emirates" were drawn overlapping. Rotating is banned by §7 and
+      truncating leaves two labels that both read "United…", so the chart changes
+      orientation instead — substitution, for the same reason as everywhere else.
+    */
+    const longNames = [
+      "Sheikh Zayed Academy for Advanced Studies",
+      "Docklands International Secondary",
+      "Alexandria Bay College",
+    ]
+    expect(prefersRows("expanded", longNames, 1400)).toBe(true)
+  })
+
+  it("turns horizontal when many categories squeeze the bands", () => {
+    // Twelve columns share the full width, so each band is narrow even though every name
+    // is short enough on its own.
+    const many = Array.from({ length: 12 }, (_, i) => `Cluster number ${i + 1}`)
+    expect(prefersRows("expanded", many, 700)).toBe(true)
+  })
+
+  it("leaves the variant in charge until it has been measured", () => {
+    // Width 0 is "not measured yet", the same convention the rest of the app uses.
+    // Guessing rows here would flip the chart's orientation on first paint.
+    expect(prefersRows("expanded", COUNTRIES, 0)).toBe(false)
+  })
+
+  it("renders the measured rows either way", () => {
+    render(
+      <RankingBar
+        data={COUNTRIES.map((label, index) => ({
+          id: `r${index}`,
+          label,
+          value: 10 + index,
+        }))}
+        variant="expanded"
+        format="number"
+        precision={1}
+        label="ratio by country"
+      />
+    )
+    expect(
+      screen.getByRole("img", { name: /ratio by country/i })
+    ).toBeInTheDocument()
   })
 })

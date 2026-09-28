@@ -263,16 +263,16 @@
 }
 
 /*
- * Everything below is gated on `data-motion-ready`, which `<MotionReady>` sets one frame
- * after the first paint.
+ * `.variant-enter` is applied by `useVariantTransition`, and only when a widget that is
+ * already on screen crosses a threshold.
  *
- * That single attribute is what makes "animate on change, never on first appearance" true
- * for the whole app without any component tracking its own first render. A widget emits
- * `variant-enter` unconditionally; on the first paint the selector does not match, so the
- * form appears instantly. Every later variant change remounts the keyed wrapper with the
- * attribute already present, and the animation plays.
+ * It is deliberately *not* gated on `data-motion-ready`. That attribute answers "has the
+ * page painted once", which is a different question from "has this widget changed form" —
+ * it is set once and stays set, so from the second navigation onwards it suppressed
+ * nothing and every drill animated every widget at once. The widget now decides, in JS,
+ * and the gate below is left for the animations that genuinely are mount-triggered.
  */
-:root[data-motion-ready] .variant-enter {
+.variant-enter {
   animation: dynavis-variant-in var(--motion-base) var(--motion-ease) both;
 }
 

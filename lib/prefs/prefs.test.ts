@@ -13,6 +13,7 @@ import {
   type PrefsAction,
 } from "@/lib/prefs/reducer"
 import { parsePrefs, pruneUnknownWidgets } from "@/lib/prefs/schema"
+import { adoptNewDefaults } from "@/lib/prefs/reducer"
 import type { DashboardPrefs } from "@/lib/prefs/types"
 
 const base = (): DashboardPrefs =>
@@ -222,7 +223,8 @@ describe("parsePrefs", () => {
   it("migrates v1, adopting the current role it never had", () => {
     const v1 = { version: 1, widgets: ["card.a", "card.b"] }
     expect(parsePrefs(v1, "principal")).toEqual({
-      version: 2,
+      seenDefaults: ["card.a", "card.b"],
+      version: 3,
       role: "principal",
       widgets: [{ id: "card.a" }, { id: "card.b" }],
     })
@@ -238,9 +240,9 @@ describe("parsePrefs", () => {
       "nonsense",
       {},
       { version: 3, widgets: [] },
-      { version: 2, role: "", widgets: [] },
-      { version: 2, role: "r", widgets: [{ id: "" }] },
-      { version: 2, role: "r", widgets: [{ id: "a", sizeOverride: "huge" }] },
+      { version: 3, role: "", widgets: [] },
+      { version: 3, role: "r", widgets: [{ id: "" }] },
+      { version: 3, role: "r", widgets: [{ id: "a", sizeOverride: "huge" }] },
     ]) {
       expect(parsePrefs(bad, "r")).toBeNull()
     }
@@ -250,7 +252,7 @@ describe("parsePrefs", () => {
     expect(
       parsePrefs(
         {
-          version: 2,
+          version: 3,
           role: "r",
           widgets: [],
           matrix: { baselineMode: "vibes" },
@@ -268,9 +270,10 @@ describe("pruneUnknownWidgets", () => {
     // A saved id pointing at nothing would throw on the next render, and the user
     // cannot reach the dashboard to fix it.
     const prefs: DashboardPrefs = {
-      version: 2,
+      version: 3,
       role: "r",
       widgets: [{ id: "card.a" }, { id: "card.retired" }, { id: "card.b" }],
+      seenDefaults: ["card.a", "card.retired", "card.b"],
     }
     expect(pruneUnknownWidgets(prefs, exists).widgets.map((w) => w.id)).toEqual(
       ["card.a", "card.b"]
@@ -325,9 +328,10 @@ describe("repositories", () => {
       "principal"
     )
     expect(loaded).toEqual({
-      version: 2,
+      version: 3,
       role: "principal",
       widgets: [{ id: "card.a" }],
+      seenDefaults: ["card.a"],
     })
   })
 
@@ -346,5 +350,87 @@ describe("repositories", () => {
     await expect(repo.save(base(), "u1")).resolves.toBeUndefined()
     await expect(repo.clear("u1", "r")).resolves.toBeUndefined()
     if (original) Object.defineProperty(globalThis, "localStorage", original)
+  })
+})
+
+describe("adoptNewDefaults — shipping a new default widget", () => {
+  const base = (
+    widgets: string[],
+    seenDefaults: string[]
+  ): DashboardPrefs => ({
+    version: 3,
+    role: "super-admin",
+    widgets: widgets.map((id) => ({ id })),
+    seenDefaults,
+  })
+
+  it("delivers a widget added to the defaults after the user last saved", () => {
+    /*
+      The bug this exists for. The quadrant chart was added to `DEFAULT_WIDGET_IDS`, and it
+      appeared only for roles with no saved preferences — for everyone else the saved list
+      already looked complete, so the widget was simply absent. It read as a chart that
+      failed to render.
+    */
+    const prefs = base(["card.a", "card.b"], ["card.a", "card.b"])
+    const next = adoptNewDefaults(prefs, ["card.a", "card.b", "chart.new"])
+    expect(next.widgets.map((w) => w.id)).toEqual([
+      "card.a",
+      "card.b",
+      "chart.new",
+    ])
+  })
+
+  it("appends, so a new arrival never displaces the user's top metric", () => {
+    const prefs = base(["card.b", "card.a"], ["card.a", "card.b"])
+    const next = adoptNewDefaults(prefs, ["chart.new", "card.a", "card.b"])
+    expect(next.widgets.map((w) => w.id)).toEqual([
+      "card.b",
+      "card.a",
+      "chart.new",
+    ])
+  })
+
+  it("does not resurrect a default the user deliberately removed", () => {
+    // The whole reason `seenDefaults` exists rather than comparing against the defaults
+    // directly: that comparison cannot tell "never offered" from "offered and deleted",
+    // and would put the widget back every time the user removed it.
+    const prefs = base(["card.a"], ["card.a", "card.b"])
+    const next = adoptNewDefaults(prefs, ["card.a", "card.b"])
+    expect(next.widgets.map((w) => w.id)).toEqual(["card.a"])
+  })
+
+  it("records what it adopted, so it only ever arrives once", () => {
+    const prefs = base(["card.a"], ["card.a"])
+    const once = adoptNewDefaults(prefs, ["card.a", "chart.new"])
+    expect(once.seenDefaults).toContain("chart.new")
+
+    // The user removes it again; a second load must leave it removed.
+    const removed = { ...once, widgets: [{ id: "card.a" }] }
+    const twice = adoptNewDefaults(removed, ["card.a", "chart.new"])
+    expect(twice.widgets.map((w) => w.id)).toEqual(["card.a"])
+  })
+
+  it("returns the same object when there is nothing new", () => {
+    const prefs = base(["card.a"], ["card.a", "card.b"])
+    expect(adoptNewDefaults(prefs, ["card.a", "card.b"])).toBe(prefs)
+  })
+
+  it("seeds a migrated v2 dashboard from what it already holds", () => {
+    /*
+      v2 had no record of what had been offered, so it is seeded from the current widgets.
+      The stated consequence: a v2 user who removed a default gets it back once. Re-offering
+      a widget once is a much smaller harm than never delivering a new one, and from v3 the
+      distinction is kept properly.
+    */
+    const migrated = parsePrefs(
+      { version: 2, role: "super-admin", widgets: [{ id: "card.a" }] },
+      "super-admin"
+    )!
+    expect(migrated.seenDefaults).toEqual(["card.a"])
+    expect(
+      adoptNewDefaults(migrated, ["card.a", "chart.new"]).widgets.map(
+        (w) => w.id
+      )
+    ).toEqual(["card.a", "chart.new"])
   })
 })

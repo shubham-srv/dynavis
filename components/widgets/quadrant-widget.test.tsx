@@ -1,4 +1,5 @@
-import { render, screen } from "@testing-library/react"
+import { fireEvent, render, screen, within } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { describe, expect, it } from "vitest"
 
 import { ContainerSizeProvider } from "@/components/dashboard/container-size"
@@ -181,5 +182,131 @@ describe("honesty", () => {
     const unpaired = { ...datum, pair: undefined }
     renderAt("standard", unpaired)
     expect(screen.getByText(/needs a paired KPI/i)).toBeInTheDocument()
+  })
+})
+
+describe("compact — asking which schools", () => {
+  it("names the schools in a group when its tile is chosen", async () => {
+    /*
+      A count answers "how many"; the next question is always "which ones". At this width
+      there is nowhere else to ask it — the scatter that would show you is precisely what
+      this rung replaced — so the tile has to answer it.
+    */
+    const user = userEvent.setup()
+    renderAt("compact")
+
+    expect(screen.getByText(/select a group/i)).toBeInTheDocument()
+
+    const tile = screen
+      .getAllByRole("button")
+      .find((button) => button.textContent?.includes("Low cost per student"))!
+    await user.click(tile)
+
+    const panel = screen.getByRole("group", { name: /schools with/i })
+    const named = within(panel).getAllByRole("listitem")
+    expect(named.length).toBe(Number(tile.closest("li")!.dataset.count))
+  })
+
+  it("is a real button, so the answer is reachable without a pointer", async () => {
+    // A tinted div with a click handler would leave keyboard and screen-reader users with
+    // a count and no way to ask about it.
+    const user = userEvent.setup()
+    renderAt("compact")
+
+    const tile = screen
+      .getAllByRole("button")
+      .find((button) => button.textContent?.includes("Low cost per student"))!
+    expect(tile).toHaveAttribute("aria-expanded", "false")
+
+    tile.focus()
+    await user.keyboard("{Enter}")
+    expect(tile).toHaveAttribute("aria-expanded", "true")
+  })
+
+  it("closes when the open tile is chosen again", async () => {
+    const user = userEvent.setup()
+    renderAt("compact")
+    const tile = screen
+      .getAllByRole("button")
+      .find((button) => button.textContent?.includes("Low cost per student"))!
+
+    await user.click(tile)
+    expect(tile).toHaveAttribute("aria-expanded", "true")
+    await user.click(tile)
+    expect(tile).toHaveAttribute("aria-expanded", "false")
+  })
+
+  it("does not offer to open an empty group", () => {
+    // Nothing to show, so the affordance is not there to be tried.
+    const single = {
+      ...datum,
+      pair: { ...datum.pair!, points: datum.pair!.points.slice(0, 4) },
+    }
+    renderAt("compact", single)
+    const empty = screen
+      .getAllByRole("button")
+      .filter((button) => button.closest("li")?.dataset.count === "0")
+    for (const button of empty) expect(button).toBeDisabled()
+  })
+})
+
+describe("standard — driving the readout", () => {
+  it("selects the nearest mark on a tap, not only on a hover", async () => {
+    /*
+      The bug this covers: the chart listened only for pointermove, and a tap emits
+      pointerdown and pointerup with no move between them. On a phone or tablet nothing
+      ever happened.
+    */
+    const { container } = renderAt("standard")
+    const svg = container.querySelector("svg")!
+    const circle = svg.querySelector("circle")!
+
+    const cx = Number(circle.getAttribute("cx"))
+    const cy = Number(circle.getAttribute("cy"))
+    // jsdom reports a zero-sized box, which makes the viewBox mapping identity — so the
+    // viewBox coordinates are the client coordinates here.
+    fireEvent.pointerDown(svg, { clientX: cx, clientY: cy, pointerType: "touch" })
+
+    expect(screen.queryByText(/tap a point/i)).not.toBeInTheDocument()
+  })
+
+  it("keeps the readout after a finger lifts", () => {
+    // pointerleave fires when a finger is raised. Clearing on it wiped the value the tap
+    // had just produced, before anyone could read it.
+    const { container } = renderAt("standard")
+    const svg = container.querySelector("svg")!
+    const circle = svg.querySelector("circle")!
+
+    fireEvent.pointerDown(svg, {
+      clientX: Number(circle.getAttribute("cx")),
+      clientY: Number(circle.getAttribute("cy")),
+      pointerType: "touch",
+    })
+    fireEvent.pointerLeave(svg, { pointerType: "touch" })
+
+    expect(screen.queryByText(/tap a point/i)).not.toBeInTheDocument()
+  })
+
+  it("walks the marks with the arrow keys", async () => {
+    // One tab stop for the chart, then arrows — twenty-three tab stops would be worse than
+    // no access at all (PLAN §7).
+    const user = userEvent.setup()
+    const { container } = renderAt("standard")
+    const svg = container.querySelector("svg")!
+
+    expect(svg).toHaveAttribute("tabindex", "0")
+    svg.focus()
+    await user.keyboard("{ArrowRight}")
+    expect(screen.queryByText(/tap a point/i)).not.toBeInTheDocument()
+
+    await user.keyboard("{Escape}")
+    expect(screen.getByText(/tap a point/i)).toBeInTheDocument()
+  })
+
+  it("lets the page scroll past it on touch", () => {
+    // `touch-action: none` swallowed the page scroll wherever the chart filled the screen.
+    const { container } = renderAt("standard")
+    const svg = container.querySelector("svg")! as unknown as SVGElement
+    expect((svg as unknown as HTMLElement).style.touchAction).toBe("pan-y")
   })
 })

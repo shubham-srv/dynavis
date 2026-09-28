@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 
 import { LocalStoragePrefsRepository } from "@/lib/prefs/local-storage"
 import {
+  adoptNewDefaults,
   announce as describeAction,
   defaultPrefs,
   prefsReducer,
@@ -64,10 +65,24 @@ export function useDashboardPrefs({
     let cancelled = false
     void repo.current.load(userId, role).then((loaded) => {
       if (cancelled) return
-      // A widget can be retired between deploys; a saved id pointing at nothing would
-      // throw on render and the user cannot reach the dashboard to fix it.
-      if (loaded) setPrefs(pruneUnknownWidgets(loaded, widgetExists))
-      else setPrefs(defaultPrefs(role, defaults))
+      // Two symmetrical deploy problems, both handled here:
+      //   - a widget retired between deploys leaves a saved id pointing at nothing, which
+      //     would throw on render with no way for the user to reach the page and fix it
+      //   - a widget *added* to the defaults would otherwise never reach anyone who has
+      //     ever customised, because their saved list already looks complete
+      if (loaded) {
+        setPrefs(
+          adoptNewDefaults(
+            pruneUnknownWidgets(loaded, widgetExists),
+            // Only defaults that are valid here: a widget the current scope level does
+            // not support must not be adopted into the layout just to be filtered out
+            // again on render.
+            defaults.filter(widgetExists)
+          )
+        )
+      } else {
+        setPrefs(defaultPrefs(role, defaults))
+      }
     })
     return () => {
       cancelled = true

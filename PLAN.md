@@ -632,9 +632,18 @@ The ladder is implemented by `quadrant.costVsAttainment` and asserted rung by ru
 Cross-cutting rules below `standard`:
 
 - Abbreviate numbers (`1.2M`, `847K`), drop axis titles into the card header, drop gridlines, drop the legend in favour of direct labels.
-- Thin ticks to first / last / max. **Never rotate labels.**
+- Thin ticks to first / last / max. **Never rotate labels.** A bar chart that cannot fit its
+  category names under columns turns horizontal *at any variant*, including `expanded` —
+  "United Kingdom" and "United Arab Emirates" overlapped, and the two alternatives are both
+  banned or useless (rotating, or truncating to two labels that read "United…").
+- Columns take the width they need and no more (`prefersRows`, `COLUMN_PX`). Three
+  categories stretched across a 1100px card put three thin bars at opposite ends of the page.
 - Minimum 44×44 CSS px for anything tappable. School names are long — truncate with a title attribute, never wrap to three lines.
-- Hit-test by **nearest on the category axis**, never by hitting the mark. Scatter uses nearest-neighbour with a ~24px radius.
+- Hit-test by **nearest on the category axis**, never by hitting the mark. Scatter uses nearest-neighbour with a ~24px radius, on `pointerdown` as well as `pointermove` — a tap emits
+  no move, so a chart listening only for movement ignores every touch. `touch-action: pan-y`,
+  never `none`: `none` swallows the page scroll wherever the chart fills the viewport.
+- A chart is **one tab stop**, with arrow keys walking its marks. One stop per mark puts
+  twenty-three of them between a keyboard user and the next control.
 - Touch and keyboard drive a **readout strip**, not a floating tooltip. One component, both inputs.
 - `prefers-reduced-motion` → animations off. **Mechanism:** three duration tokens in
   `app/globals.css` (`--motion-fast/base/slow`), zeroed by one media query, plus a
@@ -834,6 +843,14 @@ the exact overflow bug in the brief.
 ---
 
 ## 10. Customization UX
+
+**Shipping a new default widget.** `DashboardPrefs.seenDefaults` records which defaults a
+dashboard has already been offered. Without it a widget added to `DEFAULT_WIDGET_IDS` never
+reaches anyone who has customised: their saved list already looks complete, so the widget is
+simply absent and reads as a chart that failed to render. Comparing against the defaults
+directly cannot work — it cannot tell "never offered" from "offered and removed", so it would
+resurrect a widget every time the user deleted it. New defaults are appended, never inserted,
+because the user's order is theirs.
 
 - **Picker:** grouped by **pillar** (§1.1), each entry showing its `question`, not just its title. Search.
   Shows "6 of 10 selected" — a soft cap nudges against recreating the clutter. Widgets invalid at the

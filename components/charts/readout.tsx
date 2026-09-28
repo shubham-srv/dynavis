@@ -17,16 +17,28 @@ export function ChartReadout({
   value,
   secondary,
   className,
+  id,
+  idleLabel,
 }: {
   label: string | null
   value: string | null
   secondary?: string | null
   className?: string
+  /** So a chart can point `aria-describedby` at its own readout. */
+  id?: string
+  /**
+   * What to say before anything is selected.
+   *
+   * Overridable because the default names only one input. A chart that is also keyboard
+   * operable should say so here — it is the only place a keyboard user would find out.
+   */
+  idleLabel?: string
 }) {
   const idle = label === null || value === null
 
   return (
     <p
+      id={id}
       aria-live="polite"
       className={cn(
         "flex min-h-6 items-baseline gap-2 text-xs tabular-nums",
@@ -35,7 +47,7 @@ export function ChartReadout({
     >
       {idle ? (
         <span className="text-muted-foreground">
-          Select a point to see its value
+          {idleLabel ?? "Select a point to see its value"}
         </span>
       ) : (
         <>
