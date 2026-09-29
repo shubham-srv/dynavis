@@ -1,7 +1,13 @@
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 
-import { prefersRows, RankingBar } from "@/components/charts/ranking-bar"
+import {
+  labelDomain,
+  prefersRows,
+  RankingBar,
+  rowAxisWidth,
+  wrapName,
+} from "@/components/charts/ranking-bar"
 import { ChartReadout } from "@/components/charts/readout"
 import { ScatterPlot } from "@/components/charts/scatter-chart"
 import { Sparkline } from "@/components/charts/sparkline"
@@ -328,5 +334,111 @@ describe("RankingBar — reading the category names", () => {
     expect(
       screen.getByRole("img", { name: /ratio by country/i })
     ).toBeInTheDocument()
+  })
+})
+
+describe("RankingBar — fitting the text in", () => {
+  describe("wrapName", () => {
+    it("keeps a short name on one line", () => {
+      expect(wrapName("Egypt", 16)).toEqual(["Egypt"])
+    })
+
+    it("breaks a long name across two lines on a word boundary", () => {
+      expect(wrapName("Port Melbourne Academy", 16)).toEqual([
+        "Port Melbourne",
+        "Academy",
+      ])
+    })
+
+    it("never produces a third line", () => {
+      /*
+        PLAN §7: truncate with a title attribute, never wrap to three lines. Recharts wraps
+        on word boundaries with no line cap, so narrowing the gutter stacked
+        "Port / Melbourne / Academy" into the rows above and below.
+      */
+      const lines = wrapName("Sheikh Zayed Academy for Advanced Studies", 12)
+      expect(lines).toHaveLength(2)
+      expect(lines[1].endsWith("…")).toBe(true)
+    })
+
+    it("breaks a single word too long for the gutter rather than overflowing it", () => {
+      // Some school names are one long word, and a word that ignored the gutter would be
+      // drawn straight across the bars.
+      const lines = wrapName("Aussenhandelsakademie", 10)
+      expect(lines).toHaveLength(2)
+      for (const line of lines) expect(line.length).toBeLessThanOrEqual(10)
+    })
+
+    it("survives an empty name", () => {
+      expect(wrapName("", 12)).toEqual([])
+    })
+  })
+
+  describe("rowAxisWidth", () => {
+    it("gives the gutter a third of a small card, not 132 fixed pixels", () => {
+      // At 311px the fixed width took 42% of the card, leaving the bars and both value
+      // labels to share what was left.
+      expect(rowAxisWidth(311)).toBeLessThan(132)
+      expect(rowAxisWidth(311)).toBeGreaterThanOrEqual(104)
+    })
+
+    it("stops widening once names have enough room", () => {
+      expect(rowAxisWidth(1200)).toBe(132)
+    })
+
+    it("falls back to the maximum before measurement", () => {
+      expect(rowAxisWidth(0)).toBe(132)
+    })
+  })
+
+  describe("labelDomain", () => {
+    const CHAR = 6.2
+    const GAP = 6
+    const CLEAR = 14
+    const labelPx = (chars: number) => chars * CHAR + GAP + CLEAR
+
+    it("reserves room on the negative side, where the axis labels are", () => {
+      // "-38.5%" was printed straight through "Adelaide Hills School" because the bar ran
+      // to the very edge of the plot and the label had nowhere else to go.
+      const values = [0.191, 0.175, -0.256, -0.385]
+      const [lo, hi] = labelDomain(values, 6, 543)!
+      expect(lo).toBeLessThan(-0.385)
+      expect(hi).toBeGreaterThan(0.191)
+    })
+
+    it("reserves the room it was asked for, not a fraction of it", () => {
+      /*
+        The bug in the first attempt: `pad = (labelPx / plotPx) * range` measures against
+        the *unpadded* range, but adding the padding widens the domain — so the padding
+        maps to fewer pixels than requested and the label overhangs by the difference.
+      */
+      const values = [0.191, -0.385]
+      const width = 400
+      const chars = 6
+      const [lo, hi] = labelDomain(values, chars, width)!
+
+      const plotPx = width - rowAxisWidth(width)
+      const span = hi - lo
+      const padPx = ((Math.min(...values) - lo) / span) * plotPx
+      expect(padPx).toBeGreaterThanOrEqual(labelPx(chars) - 1)
+    })
+
+    it("does not pad an end that has no bars", () => {
+      // Every value positive: the left edge is the zero line and nothing is drawn past it.
+      const [lo] = labelDomain([0.2, 0.4], 5, 600)!
+      expect(lo).toBe(0)
+    })
+
+    it("caps the reservation rather than squeezing the bars away", () => {
+      // A very narrow plot with very long labels: honouring the request exactly would
+      // leave the bars a sliver, which has stopped being a ranking.
+      const [lo, hi] = labelDomain([0.2, -0.4], 14, 220)!
+      const span = hi - lo
+      expect(span).toBeLessThan(0.6 * 3)
+    })
+
+    it("has no opinion before the chart has been measured", () => {
+      expect(labelDomain([0.2, -0.4], 6, 0)).toBeUndefined()
+    })
   })
 })

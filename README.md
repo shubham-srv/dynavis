@@ -83,6 +83,27 @@ npm run lhci             # Lighthouse performance budgets
 The browser suites are separate from `npm run ci` because they need a built app and a
 real browser; CI runs them as their own job (`.github/workflows/ci.yml`).
 
+### Checking one page, at one width
+
+`npm run a11y` covers a fixed URL list at a single viewport, and `npm run e2e` covers three
+viewports but only the routes its specs visit. Neither helps when you have changed one
+widget and want to know about one page at 575px:
+
+```bash
+npm run build && npm run start          # in another terminal
+
+npm run a11y:page -- /dashboard/emea                          # 375, 768 and 1440
+npm run a11y:page -- /dashboard/apac/au --width 575
+npm run a11y:page -- /dashboard /kitchen-sink --width 375,1440 --dark
+```
+
+It prints the offending selector and the reason, and exits non-zero, so it drops into a
+hook or a CI step unchanged. A route that 404s is reported as a failure rather than as a
+clean page — Next renders a perfectly accessible 404, so a typo would otherwise pass.
+
+In Git Bash, write the route **without** its leading slash (`dashboard/emea`): MSYS rewrites
+anything starting with `/` into a Windows path before the script sees it.
+
 **Kill anything on port 3000 before running `a11y` or `lhci`.** A leftover dev server is
 silently measured instead of the production build, and once produced a confidently wrong
 994KB bundle reading against a 220KB budget.
